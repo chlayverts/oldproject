@@ -24,12 +24,12 @@ npm --version
 Jika Git sudah terpasang, jalankan:
 
 ```bash
-git clone https://github.com/chlayverts/zaza.git
-cd zaza
+git clone https://github.com/chlayverts/oldproject.git
+cd oldproject
 npm install
 ```
 
-> Jika kamu sudah mengunduh ZIP repositori dari GitHub, ekstrak ZIP, buka Terminal di folder `zaza`, lalu jalankan `npm install`.
+> Jika kamu sudah mengunduh ZIP repositori dari GitHub, ekstrak ZIP, buka Terminal di folder `oldproject`, lalu jalankan `npm install`.
 
 ### 3. Mulai aplikasi
 
@@ -58,13 +58,15 @@ Akun demo tidak memerlukan pendaftaran atau konfigurasi tambahan. Profil dan kur
 - Pindah bulan di kalender belajar.
 - Ubah nama tampilan pada profil.
 - Jelajahi contoh topik forum dan materi belajar.
+- Buka kursus terdaftar, pelajari modul, jawab cek pemahaman, dan lanjutkan dari progres yang tersimpan.
+- Tanyakan konsep pelajaran kepada tutor. Mode demo memberi petunjuk lokal berdasarkan materi; mode Supabase dapat menggunakan tutor AI.
 
 ## (Opsional) Hubungkan ke Supabase
 
 Lewati bagian ini jika hanya ingin mencoba akun demo. Supabase diperlukan untuk mencoba akun dan data yang tersimpan secara online.
 
 1. Buat project di [Supabase](https://supabase.com/).
-2. Buka **SQL Editor** pada project tersebut, lalu jalankan isi file [`supabase/schema.sql`](supabase/schema.sql) untuk membuat tabel dan aturan akses.
+2. Buka **SQL Editor** pada project tersebut, lalu jalankan isi file [`supabase/schema.sql`](supabase/schema.sql) untuk membuat tabel dan aturan akses. Jika kamu sudah menyiapkan database sebelumnya, jalankan kembali file terbaru ini untuk menambahkan tabel progres belajar.
 3. Salin file `.env.example` menjadi `.env.local` di folder utama project.
 4. Isi URL project dan publishable key dari pengaturan API Supabase:
 
@@ -78,6 +80,24 @@ Lewati bagian ini jika hanya ingin mencoba akun demo. Supabase diperlukan untuk 
 > Gunakan **publishable key** untuk aplikasi browser. Jangan pernah menaruh `service_role` key di `.env.local` yang dibagikan, kode frontend, atau repositori publik. Skema database project ini mengaktifkan Row Level Security untuk membatasi data profil dan pendaftaran kursus.
 
 Untuk mengaktifkan Supabase pada GitHub Pages, tambahkan `VITE_SUPABASE_URL` dan `VITE_SUPABASE_PUBLISHABLE_KEY` sebagai **Actions variables** di pengaturan repositori GitHub.
+
+### Aktifkan tutor AI (opsional)
+
+Tutor AI memerlukan akun Supabase, akun OpenAI API, dan penggunaan API dapat dikenakan biaya oleh penyedia. Kunci OpenAI hanya disimpan di Supabase Edge Function, bukan di browser.
+
+1. Instal dan autentikasi [Supabase CLI](https://supabase.com/docs/guides/cli).
+2. Dari folder project, hubungkan project Supabase lalu terbitkan fungsi tutor:
+
+   ```bash
+   supabase link --project-ref ID_PROJECT_KAMU
+   supabase functions deploy tutor
+   supabase secrets set OPENAI_API_KEY=KUNCI_API_KAMU
+   ```
+
+   Opsional, pilih model yang tersedia pada akun API kamu dengan secret `OPENAI_MODEL`. Jika tidak diatur, fungsi menggunakan `gpt-4.1-mini`.
+3. Pastikan aplikasi memakai URL dan publishable key Supabase seperti pada langkah sebelumnya, lalu masuk menggunakan akun Supabase. Tutor AI membatasi jawaban pada catatan pelajaran yang disediakan, meminta model memberi penjelasan dan petunjuk, serta membatasi jumlah pertanyaan per menit.
+
+Tanpa Supabase dan konfigurasi API, tutor demo tetap dapat dicoba; jawabannya merupakan petunjuk lokal berbasis materi, bukan respons AI.
 
 ## Build dan tes
 
