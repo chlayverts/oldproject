@@ -1,33 +1,5 @@
-# robots.txt for Kampus Unggul E-Learning Platform
-
-# Allow all crawlers
 User-agent: *
 Allow: /
 
-# Disallow admin and private areas
-Disallow: /admin/
-Disallow: /api/
-Disallow: /private/
-Disallow: /*.json$
+Sitemap: https://chlayverts.github.io/oldproject/sitemap.xml
 
-# Sitemap location
-Sitemap: https://kampusunggul.edu/sitemap.xml
-
-# Crawl-delay (optional, untuk prevent server overload)
-Crawl-delay: 1
-
-# Specific bot rules
-User-agent: Googlebot
-Allow: /
-Crawl-delay: 0
-
-User-agent: Bingbot
-Allow: /
-Crawl-delay: 1
-
-# Block bad bots
-User-agent: AhrefsBot
-Disallow: /
-
-User-agent: SemrushBot
-Disallow: /
