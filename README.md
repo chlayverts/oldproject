@@ -1,65 +1,76 @@
 # Kampus Unggul
 
-Kampus Unggul is a responsive e-learning interface prototype built with HTML, CSS, and vanilla JavaScript. It demonstrates common learning-platform flows such as course discovery, a student dashboard, an academic calendar, discussion categories, downloadable resources, and a short quiz.
+A portfolio-ready e-learning prototype built with React, TypeScript, and Vite. The interface includes a course catalog, learner dashboard, calendar, quiz, profile, discussion topics, and learning-materials page.
 
-**Live demo:** https://chlayverts.github.io/zaza/
+## Stack
 
-## Features
-
-- Responsive multi-page interface
-- Demo login flow and student dashboard
-- Course search, level filters, and local demo enrollment
-- Calendar navigation, quiz scoring, and locally saved profile fields
-- Form validation, keyboard-friendly quiz controls, and accessible profile tabs
-
-## Technology
-
-- HTML5
-- CSS3
-- Vanilla JavaScript
-
-No build step or package installation is required.
+- React and TypeScript for the interface
+- Vite for local development and production builds
+- Supabase Auth and Postgres for optional hosted accounts and course enrollment
+- Playwright for browser-level flows
+- GitHub Actions for CI and GitHub Pages deployment
 
 ## Run locally
 
-Clone the repository and serve the project directory with any static HTTP server. For example:
+Requires Node.js 22.12 or newer.
 
 ```bash
-git clone https://github.com/chlayverts/zaza.git
-cd zaza
-python -m http.server 8000
+npm install
+npm run dev
 ```
 
-Open http://localhost:8000.
-
-## Demo account
-
-The login flow uses hard-coded demo credentials in the client-side JavaScript:
+Open the local URL printed by Vite. Without Supabase environment variables, the app runs in local demo mode:
 
 - Username: `student`
 - Password: `kampus123`
 
-This is a frontend demonstration only. Authentication and session data are handled in the browser, so this project must not be used to protect real accounts or personal data. Course enrollment and profile edits are stored only in this browser for demonstration. The contact form does not send messages, and downloadable materials are placeholders. A production version needs server-side authentication and persistent data.
+Demo profile and enrollments are stored in this browser's local storage.
+
+## Enable Supabase
+
+1. Create a Supabase project.
+2. Run [supabase/schema.sql](supabase/schema.sql) in the SQL Editor.
+3. Copy `.env.example` to `.env.local` and set the project URL and publishable key:
+
+```dotenv
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+```
+
+4. Restart the Vite server and register a user with the sign-up form.
+
+The client uses only the publishable key. Never place a Supabase service-role key in browser code. Row Level Security policies in the SQL schema restrict profile and enrollment records to their owner.
+
+To use Supabase on the GitHub Pages deployment, add repository Actions variables named `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
+
+## Build and browser tests
+
+```bash
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+The CI workflow builds the app and runs the browser flows on pushes and pull requests to `main`. On the repository's **Settings → Pages**, set the build and deployment source to **GitHub Actions** to publish the built app.
 
 ## Project structure
 
 ```text
-.
-├── index.html       # Landing page
-├── dashboard.html   # Student dashboard
-├── courses.html     # Course catalog
-├── calendar.html    # Academic calendar
-├── forum.html       # Discussion categories
-├── downloads.html   # Learning resources
-├── profile.html     # Student profile
-├── quiz.html        # Interactive quiz
-├── styles.css       # Shared styling and responsive design
-└── script.js        # Shared interactions
+src/
+├── App.tsx                 # Screens and interactive flows
+├── data/courses.ts         # Demo catalog data
+├── lib/
+│   ├── database.types.ts   # Supabase table types
+│   ├── localStore.ts       # Local demo persistence
+│   └── supabase.ts         # Optional Supabase client
+└── styles.css              # Responsive interface
+supabase/schema.sql         # Tables and row-level security policies
+tests/e2e.spec.ts           # Playwright browser flows
 ```
 
-## Project status
+## Scope
 
-This is a portfolio prototype. A production version would need server-side authentication, persistent data, real form and enrollment endpoints.
+The local demo account is not real authentication. Supabase mode requires a project, the SQL schema, and repository or local environment variables. Forum topics, calendar entries, and learning materials are sample content; the materials page does not serve real downloads.
 
 ## Author
 
