@@ -1,14 +1,18 @@
 # Kampus Unggul
 
-Kampus Unggul adalah contoh aplikasi belajar online yang dibuat sebagai proyek portofolio. Kamu bisa mencoba katalog kursus, dashboard siswa, kuis, kalender belajar, profil, forum, dan halaman materi.
+Kampus Unggul adalah contoh aplikasi belajar online untuk proyek portofolio. Di sini kamu bisa mencoba katalog kursus, dashboard, kuis, kalender belajar, profil, forum, materi, dan tutor.
 
-**Teknologi:** React, TypeScript, Vite, Supabase (opsional), dan Playwright.
+**Teknologi yang digunakan:** React dan TypeScript untuk aplikasi, Vite untuk menjalankannya saat dikembangkan, Supabase (opsional) untuk akun online, dan Playwright untuk tes browser.
+
+> **Baru mencoba?** Kamu hanya perlu memasang Node.js lalu menjalankan aplikasi demo. Tidak perlu membuat akun Supabase, menyiapkan API key, atau mengaktifkan tutor AI.
 
 ## Coba demo online
 
 Buka [demo Kampus Unggul](https://chlayverts.github.io/oldproject/) untuk mencoba aplikasinya langsung di browser.
 
 ## Jalankan di komputer sendiri
+
+Ikuti langkah ini untuk mencoba aplikasi di komputer. Perintah di bawah dijalankan dari Terminal (macOS/Linux) atau PowerShell (Windows).
 
 ### 1. Siapkan Node.js
 
@@ -21,7 +25,9 @@ npm --version
 
 ### 2. Unduh project dan pasang kebutuhan
 
-Jika Git sudah terpasang, jalankan:
+Ada dua cara untuk mendapatkan project:
+
+- **Dengan Git:** jika Git sudah terpasang, jalankan perintah berikut:
 
 ```bash
 git clone https://github.com/chlayverts/oldproject.git
@@ -29,7 +35,7 @@ cd oldproject
 npm install
 ```
 
-> Jika kamu sudah mengunduh ZIP repositori dari GitHub, ekstrak ZIP, buka Terminal di folder `oldproject`, lalu jalankan `npm install`.
+- **Dengan ZIP:** unduh ZIP dari tombol **Code** di GitHub, ekstrak foldernya, lalu buka Terminal atau PowerShell di folder `oldproject` dan jalankan `npm install`.
 
 ### 3. Mulai aplikasi
 
@@ -37,9 +43,11 @@ npm install
 npm run dev
 ```
 
-Terminal akan menampilkan alamat lokal, biasanya `http://localhost:5173`. Buka alamat itu di browser. Biarkan terminal tetap berjalan selama kamu menggunakan aplikasi. Untuk menghentikannya, tekan `Ctrl+C`.
+Perintah ini menyalakan server lokal untuk aplikasi. Server lokal artinya aplikasi berjalan di komputermu sendiri.
 
-Project ini memakai server pengembangan Vite agar dependensi dan rute aplikasi berjalan sesuai konfigurasi.
+Terminal akan menampilkan alamat lokal, biasanya `http://localhost:5173`. Buka alamat tersebut di browser. Biarkan jendela Terminal tetap terbuka selama aplikasi digunakan; tekan `Ctrl+C` di sana untuk menghentikan server.
+
+Project ini memakai server pengembangan Vite yang dijalankan melalui `npm run dev`.
 
 ### 4. Masuk ke akun demo
 
@@ -50,7 +58,13 @@ Pilih **Masuk Demo**, kemudian gunakan:
 | Username | `student` |
 | Password | `kampus123` |
 
-Akun demo tidak memerlukan pendaftaran atau konfigurasi tambahan. Profil dan kursus yang diikuti disimpan di penyimpanan browser pada perangkat tersebut. Data ini tidak tersinkron ke perangkat lain. Hapus data situs di browser untuk mengulang demo dari awal.
+Akun demo tidak memerlukan pendaftaran atau konfigurasi tambahan. Profil dan progres kursus disimpan di browser pada perangkatmu, sehingga tidak tersinkron ke perangkat lain. Untuk mengulang demo dari awal, hapus data situs di browser.
+
+### Jika mengalami kendala
+
+- **Perintah `node` atau `npm` tidak ditemukan:** pasang Node.js, tutup lalu buka kembali Terminal, kemudian cek dengan `node --version` dan `npm --version`.
+- **Alamat `localhost:5173` tidak terbuka:** pastikan `npm run dev` masih berjalan. Gunakan alamat yang tercetak di Terminal jika port yang dipakai berbeda.
+- **Ingin menghentikan aplikasi:** kembali ke Terminal dan tekan `Ctrl+C`.
 
 ## Fitur yang bisa dicoba
 
@@ -63,7 +77,11 @@ Akun demo tidak memerlukan pendaftaran atau konfigurasi tambahan. Profil dan kur
 - Buka kursus terdaftar, pelajari modul, jawab cek pemahaman, dan lanjutkan dari progres yang tersimpan.
 - Tanyakan konsep pelajaran kepada tutor. Mode demo memberi petunjuk lokal berdasarkan materi; mode Supabase dapat menggunakan tutor AI.
 
-## (Opsional) Hubungkan ke Supabase
+## Pengaturan lanjutan (opsional)
+
+Bagian berikut hanya diperlukan jika kamu ingin mencoba akun online atau tutor AI. Jika tujuanmu hanya menjalankan demo, kamu bisa melewatinya.
+
+### Hubungkan ke Supabase
 
 Lewati bagian ini jika hanya ingin mencoba akun demo. Supabase diperlukan untuk mencoba akun dan data yang tersimpan secara online.
 
@@ -83,7 +101,7 @@ Lewati bagian ini jika hanya ingin mencoba akun demo. Supabase diperlukan untuk 
 
 Untuk mengaktifkan Supabase pada GitHub Pages, tambahkan `VITE_SUPABASE_URL` dan `VITE_SUPABASE_PUBLISHABLE_KEY` sebagai **Actions variables** di pengaturan repositori GitHub.
 
-### Aktifkan tutor AI (opsional)
+### Aktifkan tutor AI
 
 Tutor AI memerlukan akun Supabase, akun OpenAI API, dan penggunaan API dapat dikenakan biaya oleh penyedia. Kunci OpenAI hanya disimpan di Supabase Edge Function, bukan di browser.
 
