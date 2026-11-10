@@ -459,7 +459,7 @@ const ProfileManager = {
                 const field = document.getElementById(id);
                 if (field && typeof saved[id] === 'string') field.value = saved[id];
             });
-            const name = document.querySelector('.profile-info h2');
+            const name = document.querySelector('.profile-avatar h3');
             if (name && saved.fullName) name.textContent = saved.fullName;
         }
 
@@ -704,6 +704,10 @@ const QuizManager = {
         const messageDisplay = document.getElementById('scoreMessage');
 
         if (resultsSection && scoreDisplay) {
+            document.querySelectorAll('.quiz-question').forEach(question => {
+                question.style.display = 'none';
+                question.setAttribute('aria-hidden', 'true');
+            });
             resultsSection.style.display = 'block';
             resultsSection.setAttribute('aria-hidden', 'false');
             scoreDisplay.textContent = this.score;
