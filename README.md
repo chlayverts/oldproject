@@ -1,77 +1,117 @@
 # Kampus Unggul
 
-A portfolio-ready e-learning prototype built with React, TypeScript, and Vite. The interface includes a course catalog, learner dashboard, calendar, quiz, profile, discussion topics, and learning-materials page.
+Kampus Unggul adalah contoh aplikasi belajar online yang dibuat sebagai proyek portofolio. Kamu bisa mencoba katalog kursus, dashboard siswa, kuis, kalender belajar, profil, forum, dan halaman materi.
 
-## Stack
+**Teknologi:** React, TypeScript, Vite, Supabase (opsional), dan Playwright.
 
-- React and TypeScript for the interface
-- Vite for local development and production builds
-- Supabase Auth and Postgres for optional hosted accounts and course enrollment
-- Playwright for browser-level flows
-- GitHub Actions for CI and GitHub Pages deployment
+## Coba demo online
 
-## Run locally
+Jika GitHub Pages sudah diaktifkan untuk repositori ini, buka tab **Settings â†’ Pages** di GitHub untuk melihat alamat demo yang diterbitkan.
 
-Requires Node.js 22.12 or newer.
+## Jalankan di komputer sendiri
+
+### 1. Siapkan Node.js
+
+Pasang **Node.js versi 22.12 atau lebih baru** dari [nodejs.org](https://nodejs.org/). Setelah instalasi, buka Terminal (macOS/Linux) atau PowerShell (Windows), lalu pastikan Node.js dan npm tersedia:
 
 ```bash
+node --version
+npm --version
+```
+
+### 2. Unduh project dan pasang kebutuhan
+
+Jika Git sudah terpasang, jalankan:
+
+```bash
+git clone https://github.com/chlayverts/zaza.git
+cd zaza
 npm install
+```
+
+> Jika kamu sudah mengunduh ZIP repositori dari GitHub, ekstrak ZIP, buka Terminal di folder `zaza`, lalu jalankan `npm install`.
+
+### 3. Mulai aplikasi
+
+```bash
 npm run dev
 ```
 
-Open the local URL printed by Vite. Without Supabase environment variables, the app runs in local demo mode:
+Terminal akan menampilkan alamat lokal, biasanya `http://localhost:5173`. Buka alamat itu di browser. Biarkan terminal tetap berjalan selama kamu menggunakan aplikasi. Untuk menghentikannya, tekan `Ctrl+C`.
 
-- Username: `student`
-- Password: `kampus123`
+### 4. Masuk ke akun demo
 
-Demo profile and enrollments are stored in this browser's local storage.
+Pilih **Masuk Demo**, kemudian gunakan:
 
-## Enable Supabase
+| Kolom | Isi |
+| --- | --- |
+| Username | `student` |
+| Password | `kampus123` |
 
-1. Create a Supabase project.
-2. Run [supabase/schema.sql](supabase/schema.sql) in the SQL Editor.
-3. Copy `.env.example` to `.env.local` and set the project URL and publishable key:
+Akun demo tidak memerlukan pendaftaran atau konfigurasi tambahan. Profil dan kursus yang diikuti disimpan di penyimpanan browser pada perangkat tersebut. Data ini tidak tersinkron ke perangkat lain. Hapus data situs di browser untuk mengulang demo dari awal.
 
-```dotenv
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
-```
+## Fitur yang bisa dicoba
 
-4. Restart the Vite server and register a user with the sign-up form.
+- Cari dan saring kursus, lalu coba mendaftar.
+- Lihat ringkasan belajar di dashboard.
+- Kerjakan kuis singkat dan lihat hasilnya.
+- Pindah bulan di kalender belajar.
+- Ubah nama tampilan pada profil.
+- Jelajahi contoh topik forum dan materi belajar.
 
-The client uses only the publishable key. Never place a Supabase service-role key in browser code. Row Level Security policies in the SQL schema restrict profile and enrollment records to their owner.
+## (Opsional) Hubungkan ke Supabase
 
-To use Supabase on the GitHub Pages deployment, add repository Actions variables named `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
+Lewati bagian ini jika hanya ingin mencoba akun demo. Supabase diperlukan untuk mencoba akun dan data yang tersimpan secara online.
 
-## Build and browser tests
+1. Buat project di [Supabase](https://supabase.com/).
+2. Buka **SQL Editor** pada project tersebut, lalu jalankan isi file [`supabase/schema.sql`](supabase/schema.sql) untuk membuat tabel dan aturan akses.
+3. Salin file `.env.example` menjadi `.env.local` di folder utama project.
+4. Isi URL project dan publishable key dari pengaturan API Supabase:
+
+   ```dotenv
+   VITE_SUPABASE_URL=https://project-kamu.supabase.co
+   VITE_SUPABASE_PUBLISHABLE_KEY=publishable-key-kamu
+   ```
+
+5. Hentikan server lokal jika sedang berjalan (`Ctrl+C`), lalu jalankan kembali `npm run dev`. Gunakan formulir daftar untuk membuat akun.
+
+> Gunakan **publishable key** untuk aplikasi browser. Jangan pernah menaruh `service_role` key di `.env.local` yang dibagikan, kode frontend, atau repositori publik. Skema database project ini mengaktifkan Row Level Security untuk membatasi data profil dan pendaftaran kursus.
+
+Untuk mengaktifkan Supabase pada GitHub Pages, tambahkan `VITE_SUPABASE_URL` dan `VITE_SUPABASE_PUBLISHABLE_KEY` sebagai **Actions variables** di pengaturan repositori GitHub.
+
+## Build dan tes
+
+Untuk membuat build production:
 
 ```bash
 npm run build
+```
+
+Untuk menjalankan tes browser Playwright, pasang browser Chromium satu kali:
+
+```bash
 npx playwright install chromium
 npm run test:e2e
 ```
 
-The CI workflow builds the app and runs the browser flows on pushes and pull requests to `main`. On the repository's **Settings → Pages**, set the build and deployment source to **GitHub Actions** to publish the built app.
+Workflow GitHub Actions menjalankan build dan tes pada perubahan ke `main` dan pull request. Untuk menerbitkan situs, pilih **Settings â†’ Pages â†’ Build and deployment â†’ GitHub Actions**. Setelah workflow berhasil, GitHub menampilkan alamat situs di halaman Pages.
 
-## Project structure
+## Catatan demo
+
+Akun demo hanya simulasi untuk mencoba tampilan dan alur aplikasi; akun ini bukan autentikasi sungguhan. Topik forum, jadwal kalender, dan materi adalah konten contoh. Halaman materi belum menyediakan unduhan file.
+
+## Struktur utama
 
 ```text
-src/
-├── App.tsx                 # Screens and interactive flows
-├── data/courses.ts         # Demo catalog data
-├── lib/
-│   ├── database.types.ts   # Supabase table types
-│   ├── localStore.ts       # Local demo persistence
-│   └── supabase.ts         # Optional Supabase client
-└── styles.css              # Responsive interface
-supabase/schema.sql         # Tables and row-level security policies
-tests/e2e.spec.ts           # Playwright browser flows
+src/                    Tampilan dan alur aplikasi
+  data/courses.ts       Data contoh kursus
+  lib/                  Penyimpanan lokal dan integrasi Supabase
+  styles.css            Gaya dan tampilan responsif
+supabase/schema.sql     Tabel dan aturan akses Supabase
+tests/e2e.spec.ts       Tes alur aplikasi di browser
 ```
 
-## Scope
+## Tentang
 
-The local demo account is not real authentication. Supabase mode requires a project, the SQL schema, and repository or local environment variables. Forum topics, calendar entries, and learning materials are sample content; the materials page does not serve real downloads.
+Dibuat oleh [Chlayverts](https://github.com/chlayverts) sebagai proyek portofolio.
 
-## Author
-
-**Chlayverts** · [GitHub profile](https://github.com/chlayverts)
