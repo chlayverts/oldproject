@@ -47,7 +47,6 @@ Perintah ini menyalakan server lokal untuk aplikasi. Server lokal artinya aplika
 
 Terminal akan menampilkan alamat lokal, biasanya `http://localhost:5173`. Buka alamat tersebut di browser. Biarkan jendela Terminal tetap terbuka selama aplikasi digunakan; tekan `Ctrl+C` di sana untuk menghentikan server.
 
-Project ini memakai server pengembangan Vite yang dijalankan melalui `npm run dev`.
 
 ### 4. Masuk ke akun demo
 
@@ -83,7 +82,7 @@ Bagian berikut hanya diperlukan jika kamu ingin mencoba akun online atau tutor A
 
 ### Hubungkan ke Supabase
 
-Lewati bagian ini jika hanya ingin mencoba akun demo. Supabase diperlukan untuk mencoba akun dan data yang tersimpan secara online.
+Supabase memungkinkan pengguna membuat akun dan menyimpan data secara online.
 
 1. Buat project di [Supabase](https://supabase.com/).
 2. Buka **SQL Editor** pada project tersebut, lalu jalankan isi file [`supabase/schema.sql`](supabase/schema.sql) untuk membuat tabel dan aturan akses. Jika kamu sudah menyiapkan database sebelumnya, jalankan kembali file terbaru ini untuk menambahkan tabel progres belajar.
