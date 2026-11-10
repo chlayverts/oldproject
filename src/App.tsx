@@ -1,0 +1,346 @@
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import type { Session } from '@supabase/supabase-js';
+import { courses } from './data/courses';
+import type { Course } from './data/courses';
+import { readLocal, writeLocal } from './lib/localStore';
+import { supabase, supabaseConfigured } from './lib/supabase';
+import './styles.css';
+
+type Page = 'home' | 'courses' | 'dashboard' | 'calendar' | 'quiz' | 'profile' | 'forum' | 'materials';
+type DemoUser = { email: string; name: string };
+type QuizQuestion = { prompt: string; answers: string[]; correct: number };
+
+const navigation: { id: Page; label: string }[] = [
+  { id: 'home', label: 'Beranda' },
+  { id: 'courses', label: 'Kursus' },
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'calendar', label: 'Kalender' },
+  { id: 'quiz', label: 'Kuis' },
+  { id: 'forum', label: 'Forum' },
+  { id: 'materials', label: 'Materi' },
+];
+
+const questions: QuizQuestion[] = [
+  { prompt: 'Apa tujuan utama data science?', answers: ['Mengubah data menjadi insight yang dapat ditindaklanjuti.', 'Menyimpan file tanpa analisis.', 'Menggantikan seluruh keputusan manusia.'], correct: 0 },
+  { prompt: 'Apa fungsi validasi model?', answers: ['Membuat data terlihat lebih rapi.', 'Mengukur kemampuan model pada data yang belum pernah dilihat.', 'Memastikan model selalu benar.'], correct: 1 },
+  { prompt: 'Apa langkah penting dalam pengembangan AI yang bertanggung jawab?', answers: ['Mengabaikan kualitas data.', 'Memeriksa bias dan dampak penggunaan data.', 'Menghapus semua evaluasi model.'], correct: 1 },
+];
+
+const calendarEvents = [
+  { day: 5, title: 'Diskusi Data Science', time: '09.00 WIB' },
+  { day: 12, title: 'Workshop Web Development', time: '13.00 WIB' },
+  { day: 18, title: 'Seminar AI Ethics', time: '10.00 WIB' },
+  { day: 25, title: 'Review Proyek', time: '15.00 WIB' },
+];
+
+function App() {
+  const [page, setPage] = useState<Page>('home');
+  const [session, setSession] = useState<Session | null>(null);
+  const [demoUser, setDemoUser] = useState<DemoUser | null>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [authMessage, setAuthMessage] = useState('');
+  const [notice, setNotice] = useState('');
+  const [search, setSearch] = useState('');
+  const [level, setLevel] = useState('Semua level');
+  const [enrolled, setEnrolled] = useState<Set<string>>(() => new Set(readLocal<string[]>('zaza-enrollments', [])));
+  const [profileName, setProfileName] = useState(() => readLocal('zaza-profile-name', 'Student Demo'));
+  const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [answers, setAnswers] = useState<number[]>([]);
+  const [quizComplete, setQuizComplete] = useState(false);
+
+  const authenticated = Boolean(session || demoUser);
+  const email = session?.user.email || demoUser?.email || '';
+  const name = session?.user.user_metadata.full_name || demoUser?.name || profileName;
+
+  useEffect(() => {
+    const client = supabase;
+    if (!client) {
+      setDemoUser(readLocal<DemoUser | null>('zaza-demo-user', null));
+      return;
+    }
+    let mounted = true;
+    void client.auth.getSession().then(({ data, error }) => {
+      if (!mounted) return;
+      if (error) setNotice('Sesi tidak dapat diperiksa. Silakan masuk kembali.');
+      setSession(data.session);
+    });
+    const { data: { subscription } } = client.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+    });
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const client = supabase;
+    if (!client || !session) return;
+    let mounted = true;
+    async function loadAccount() {
+      const [profile, enrollments] = await Promise.all([
+        client.from('profiles').select('full_name').eq('id', session.user.id).maybeSingle(),
+        client.from('enrollments').select('course_id').eq('user_id', session.user.id),
+      ]);
+      if (!mounted) return;
+      if (profile.data?.full_name) setProfileName(profile.data.full_name);
+      if (enrollments.data) setEnrolled(new Set(enrollments.data.map(row => row.course_id)));
+    }
+    void loadAccount().catch(() => setNotice('Data akun belum dapat dimuat.'));
+    return () => { mounted = false; };
+  }, [session]);
+
+  const visibleCourses = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return courses.filter(course => {
+      const searchable = (course.title + ' ' + course.description + ' ' + course.category).toLowerCase();
+      return (!query || searchable.includes(query)) && (level === 'Semua level' || course.level === level);
+    });
+  }, [search, level]);
+
+  function navigate(target: Page) {
+    if ((target === 'dashboard' || target === 'profile') && !authenticated) {
+      setAuthMessage('Masuk untuk membuka halaman akun demo.');
+      setAuthMode('login');
+      setLoginOpen(true);
+      return;
+    }
+    setNotice('');
+    setPage(target);
+  }
+
+  async function handleAuth(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const identifier = String(form.get('email') || '').trim();
+    const password = String(form.get('password') || '');
+    const client = supabase;
+
+    if (!client) {
+      if (authMode === 'login' && ['student', 'student@kampusunggul.demo'].includes(identifier.toLowerCase()) && password === 'kampus123') {
+        const user = { email: 'student@kampusunggul.demo', name: 'Student Demo' };
+        setDemoUser(user);
+        writeLocal('zaza-demo-user', user);
+        setProfileName(readLocal('zaza-profile-name', user.name));
+        setAuthMessage('');
+        setLoginOpen(false);
+        setPage('dashboard');
+      } else {
+        setAuthMessage('Akun demo: student / kampus123. Akun baru memerlukan Supabase.');
+      }
+      return;
+    }
+
+    const result = authMode === 'signup'
+      ? await client.auth.signUp({
+          email: identifier,
+          password,
+          options: { data: { full_name: String(form.get('fullName') || '').trim() } },
+        })
+      : await client.auth.signInWithPassword({ email: identifier, password });
+
+    if (result.error) {
+      setAuthMessage(result.error.message);
+      return;
+    }
+    if (authMode === 'signup' && !result.data.session) {
+      setAuthMessage('Akun dibuat. Periksa email untuk menyelesaikan konfirmasi.');
+      return;
+    }
+    setAuthMessage('');
+    setLoginOpen(false);
+    setPage('dashboard');
+  }
+
+  async function handleLogout() {
+    if (supabase && session) {
+      const { error } = await supabase.auth.signOut();
+      setNotice(error ? 'Keluar gagal. Coba lagi.' : 'Anda sudah keluar.');
+    } else {
+      localStorage.removeItem('zaza-demo-user');
+      setDemoUser(null);
+      setNotice('Anda sudah keluar dari akun demo.');
+    }
+    setPage('home');
+  }
+
+  async function enroll(course: Course) {
+    if (!authenticated) {
+      setAuthMessage('Masuk untuk menyimpan pendaftaran kursus.');
+      setAuthMode('login');
+      setLoginOpen(true);
+      return;
+    }
+    if (enrolled.has(course.id)) {
+      setNotice('Kursus sudah ada di daftar belajar Anda.');
+      return;
+    }
+    if (supabase && session) {
+      const { error } = await supabase.from('enrollments').upsert(
+        { user_id: session.user.id, course_id: course.id },
+        { onConflict: 'user_id,course_id', ignoreDuplicates: true },
+      );
+      if (error) {
+        setNotice('Pendaftaran belum tersimpan. Pastikan skema Supabase sudah diterapkan.');
+        return;
+      }
+    } else {
+      const next = new Set(enrolled);
+      next.add(course.id);
+      if (!writeLocal('zaza-enrollments', Array.from(next))) {
+        setNotice('Browser tidak dapat menyimpan pendaftaran demo.');
+        return;
+      }
+    }
+    setEnrolled(previous => new Set(previous).add(course.id));
+    setNotice('Kursus ditambahkan ke daftar belajar.');
+  }
+
+  async function saveProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const nextName = String(form.get('fullName') || '').trim();
+    if (!nextName) return;
+    setProfileName(nextName);
+    if (supabase && session) {
+      const { error } = await supabase.from('profiles').upsert(
+        { id: session.user.id, full_name: nextName },
+        { onConflict: 'id' },
+      );
+      setNotice(error ? 'Profil belum tersimpan. Pastikan skema Supabase sudah diterapkan.' : 'Profil berhasil disimpan.');
+    } else {
+      const saved = writeLocal('zaza-profile-name', nextName);
+      setNotice(saved ? 'Profil tersimpan di browser demo ini.' : 'Profil tidak dapat disimpan di browser.');
+    }
+  }
+
+  function submitAnswer() {
+    if (selectedAnswer === null) {
+      setNotice('Pilih satu jawaban sebelum melanjutkan.');
+      return;
+    }
+    const nextAnswers = [...answers, selectedAnswer];
+    setAnswers(nextAnswers);
+    setSelectedAnswer(null);
+    setNotice('');
+    if (questionIndex === questions.length - 1) setQuizComplete(true);
+    else setQuestionIndex(index => index + 1);
+  }
+
+  function resetQuiz() {
+    setQuestionIndex(0);
+    setSelectedAnswer(null);
+    setAnswers([]);
+    setQuizComplete(false);
+    setNotice('');
+  }
+
+  const firstDay = new Date(month.getFullYear(), month.getMonth(), 1);
+  const dayCount = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+  const leadingDays = Array.from({ length: firstDay.getDay() }, (_, index) => index);
+  const days = Array.from({ length: dayCount }, (_, index) => index + 1);
+  const monthLabel = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(month);
+
+  function courseCard(course: Course) {
+    const isEnrolled = enrolled.has(course.id);
+    return (
+      <article className="course-card" key={course.id}>
+        <div className={'course-art ' + course.accent} aria-hidden="true">
+          <span>{course.category}</span><strong>{course.title.split(' ').slice(0, 2).join(' ')}</strong>
+        </div>
+        <div className="course-card-content">
+          <div className="course-meta"><span>{course.level}</span><span>{course.duration}</span></div>
+          <h3>{course.title}</h3><p>{course.description}</p>
+          <button className={isEnrolled ? 'button button-secondary' : 'button button-primary'} type="button" aria-pressed={isEnrolled} onClick={() => void enroll(course)}>
+            {isEnrolled ? 'Terdaftar' : 'Daftar kursus'}
+          </button>
+        </div>
+      </article>
+    );
+  }
+
+  function signInPrompt() {
+    return <div className="sign-in-prompt"><p className="eyebrow">AKUN DIPERLUKAN</p><h1>Masuk untuk melanjutkan</h1><p>Gunakan akun demo atau akun Supabase untuk menyimpan progres.</p><button className="button button-primary" onClick={() => setLoginOpen(true)}>Masuk demo</button></div>;
+  }
+
+  function renderPage() {
+    if (page === 'courses') {
+      return <section className="page-section">
+        <div className="section-heading"><p className="eyebrow">KATALOG</p><h1>Temukan kursus berikutnya</h1><p>Pilih materi yang sesuai dengan tujuan belajarmu.</p></div>
+        <div className="catalog-controls"><label className="search-field"><span className="sr-only">Cari kursus</span><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Cari kursus..." /></label><label><span className="sr-only">Filter level</span><select value={level} onChange={event => setLevel(event.target.value)}><option>Semua level</option><option>Pemula</option><option>Menengah</option><option>Lanjutan</option></select></label></div>
+        <div className="course-grid">{visibleCourses.map(courseCard)}</div>
+        {visibleCourses.length === 0 && <p className="empty-state">Belum ada kursus yang cocok. Coba kata kunci lain.</p>}
+      </section>;
+    }
+
+    if (page === 'dashboard') {
+      if (!authenticated) return <section className="page-section narrow">{signInPrompt()}</section>;
+      const myCourses = courses.filter(course => enrolled.has(course.id));
+      return <section className="page-section">
+        <div className="section-heading"><p className="eyebrow">DASHBOARD</p><h1>Selamat datang, {name}</h1><p>Ringkasan perjalanan belajarmu ada di sini.</p></div>
+        <div className="metric-grid"><article className="metric-card"><span>Kursus di daftar belajar</span><strong>{enrolled.size}</strong></article><article className="metric-card"><span>Kuis tersedia</span><strong>{questions.length}</strong></article><article className="metric-card"><span>Status akun</span><strong>{supabaseConfigured ? 'Terhubung' : 'Demo lokal'}</strong></article></div>
+        <div className="section-heading compact"><h2>Kursus pilihanmu</h2><button className="text-button" onClick={() => navigate('courses')}>Lihat katalog →</button></div>
+        <div className="course-grid">{myCourses.map(courseCard)}</div>
+        {myCourses.length === 0 && <p className="empty-state">Belum ada kursus. Jelajahi katalog untuk menambahkan kursus demo.</p>}
+      </section>;
+    }
+
+    if (page === 'calendar') {
+      return <section className="page-section">
+        <div className="section-heading"><p className="eyebrow">JADWAL</p><h1>Kalender belajar</h1><p>Jadwal contoh untuk merencanakan sesi belajar.</p></div>
+        <div className="calendar-panel"><div className="calendar-toolbar"><button className="icon-button" onClick={() => setMonth(date => new Date(date.getFullYear(), date.getMonth() - 1, 1))} aria-label="Bulan sebelumnya">‹</button><h2>{monthLabel}</h2><button className="icon-button" onClick={() => setMonth(date => new Date(date.getFullYear(), date.getMonth() + 1, 1))} aria-label="Bulan berikutnya">›</button></div>
+          <div className="calendar-grid" role="grid" aria-label={'Kalender ' + monthLabel}>{['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(day => <span className="calendar-weekday" role="columnheader" key={day}>{day}</span>)}{leadingDays.map(day => <span className="calendar-day muted" role="gridcell" aria-hidden="true" key={'empty-' + day} />)}{days.map(day => <span className={calendarEvents.some(event => event.day === day) ? 'calendar-day has-event' : 'calendar-day'} role="gridcell" key={day} aria-label={day + ' ' + monthLabel}>{day}</span>)}</div>
+        </div>
+        <div className="event-list"><h2>Agenda contoh</h2>{calendarEvents.map(event => <article className="event-row" key={event.day}><time>{event.day} {monthLabel.split(' ')[0]}</time><div><strong>{event.title}</strong><span>{event.time}</span></div></article>)}</div>
+      </section>;
+    }
+
+    if (page === 'quiz') {
+      const score = answers.reduce((total, answer, index) => total + (answer === questions[index]?.correct ? 1 : 0), 0);
+      return <section className="page-section narrow">
+        <div className="section-heading"><p className="eyebrow">LATIHAN</p><h1>Kuis singkat</h1><p>Uji pemahamanmu dengan tiga pertanyaan.</p></div>
+        {quizComplete
+          ? <div className="quiz-panel result-panel"><p className="eyebrow">HASIL</p><h2>Skor kamu {score} dari {questions.length}</h2><p>{score === questions.length ? 'Hebat, semua jawaban tepat.' : 'Terus berlatih dan coba lagi.'}</p><button className="button button-primary" onClick={resetQuiz}>Ulangi kuis</button></div>
+          : <div className="quiz-panel"><div className="quiz-progress"><span>Pertanyaan {questionIndex + 1} dari {questions.length}</span><div><i style={{ width: (((questionIndex + 1) / questions.length) * 100) + '%' }} /></div></div><h2>{questions[questionIndex].prompt}</h2><div className="answer-list">{questions[questionIndex].answers.map((answer, index) => <button key={answer} className={selectedAnswer === index ? 'answer-option selected' : 'answer-option'} aria-pressed={selectedAnswer === index} onClick={() => setSelectedAnswer(index)}>{answer}</button>)}</div><button className="button button-primary" onClick={submitAnswer}>{questionIndex === questions.length - 1 ? 'Lihat hasil' : 'Lanjutkan'}</button></div>}
+      </section>;
+    }
+
+    if (page === 'profile') {
+      if (!authenticated) return <section className="page-section narrow">{signInPrompt()}</section>;
+      return <section className="page-section narrow"><div className="section-heading"><p className="eyebrow">AKUN</p><h1>Profil belajar</h1><p>Perbarui nama yang digunakan di dashboard.</p></div><form className="profile-panel" onSubmit={event => void saveProfile(event)}><label>Email akun<input value={email} readOnly /></label><label>Nama tampilan<input name="fullName" defaultValue={profileName} required maxLength={80} /></label><p className="helper-text">{supabaseConfigured ? 'Profil disimpan pada akun Supabase.' : 'Profil disimpan di browser ini untuk mode demo.'}</p><button className="button button-primary" type="submit">Simpan profil</button></form></section>;
+    }
+
+    if (page === 'forum') {
+      return <section className="page-section"><div className="section-heading"><p className="eyebrow">KOMUNITAS</p><h1>Ruang diskusi</h1><p>Topik contoh untuk menemukan komunitas belajarmu.</p></div><div className="topic-grid">{['Programming', 'Artificial Intelligence', 'Data Science', 'Karier Teknologi'].map((topic, index) => <article className="topic-card" key={topic}><span className="topic-number">0{index + 1}</span><h2>{topic}</h2><p>Diskusi, pertanyaan, dan berbagi wawasan seputar {topic.toLowerCase()}.</p><span className="helper-text">Kategori demo</span></article>)}</div></section>;
+    }
+
+    if (page === 'materials') {
+      return <section className="page-section"><div className="section-heading"><p className="eyebrow">SUMBER BELAJAR</p><h1>Materi pembelajaran</h1><p>Daftar materi contoh. Berkas unduhan belum tersedia di demo ini.</p></div><div className="topic-grid">{['Panduan pengantar data science', 'Catatan machine learning', 'Template proyek web'].map(item => <article className="topic-card" key={item}><span className="topic-number">PDF</span><h2>{item}</h2><p>Materi contoh untuk melengkapi pengalaman belajar.</p><button className="button button-muted" disabled>Segera tersedia</button></article>)}</div></section>;
+    }
+
+    return <>
+      <section className="hero"><div className="hero-copy"><p className="eyebrow">BELAJAR DENGAN TUJUAN</p><h1>Bangun skill digital, selangkah demi selangkah.</h1><p>Temukan kursus praktis, ukur pemahamanmu, dan simpan progres belajar dalam satu ruang.</p><div className="hero-actions"><button className="button button-primary" onClick={() => navigate('courses')}>Jelajahi kursus <span aria-hidden="true">→</span></button><button className="button button-ghost" onClick={() => navigate('quiz')}>Coba kuis singkat</button></div><div className="hero-proof"><span><strong>06</strong> kursus contoh</span><span><strong>03</strong> topik latihan</span></div></div><div className="hero-visual" aria-label="Pratinjau ruang belajar"><div className="visual-window"><div className="visual-topline"><span /><span /><span /></div><div className="visual-title">Progress belajar</div><div className="visual-course"><span className="visual-icon">DS</span><div><strong>Data Science</strong><small>Modul 04 · Analisis data</small></div><span className="visual-percent">72%</span></div><div className="visual-progress"><i /></div><div className="visual-bottom"><span>Terus bergerak maju</span><b>↗</b></div></div><div className="hero-orbit orbit-one" /><div className="hero-orbit orbit-two" /></div></section>
+      <section className="home-section"><div className="section-heading"><p className="eyebrow">KATALOG PILIHAN</p><h2>Mulai dari yang menarik perhatianmu</h2><p>Kursus contoh dengan topik yang relevan untuk perjalanan digital.</p></div><div className="course-grid">{courses.slice(0, 3).map(courseCard)}</div><div className="section-action"><button className="button button-outline" onClick={() => navigate('courses')}>Lihat semua kursus</button></div></section>
+      <section className="feature-strip"><div><span className="feature-mark">01</span><h3>Belajar terarah</h3><p>Mulai dari materi fondasi hingga topik lanjutan.</p></div><div><span className="feature-mark">02</span><h3>Latihan singkat</h3><p>Uji pemahaman lewat kuis interaktif.</p></div><div><span className="feature-mark">03</span><h3>Progres tersimpan</h3><p>Mode demo menyimpan pilihan di browser; Supabase opsional untuk data akun.</p></div></section>
+    </>;
+  }
+
+  return <div className="app-shell">
+    <header className="site-header">
+      <button className="brand" onClick={() => navigate('home')} aria-label="Kampus Unggul beranda"><span className="brand-mark">K</span><span>Kampus<span className="brand-light">Unggul</span><small>RUANG BELAJAR DIGITAL</small></span></button>
+      <nav className="main-nav" aria-label="Navigasi utama">{navigation.map(item => <button key={item.id} className={page === item.id ? 'nav-link active' : 'nav-link'} aria-current={page === item.id ? 'page' : undefined} onClick={() => navigate(item.id)}>{item.label}</button>)}</nav>
+      <div className="header-actions">{authenticated ? <><button className="user-chip" onClick={() => navigate('profile')} aria-label={'Profil ' + name}><span className="avatar">{name.slice(0, 1).toUpperCase()}</span><span>{name}</span></button><button className="button button-small button-outline" onClick={() => void handleLogout()}>Keluar</button></> : <button className="button button-small button-primary" aria-label="Masuk Demo" onClick={() => { setAuthMode('login'); setLoginOpen(true); }}>Masuk</button>}</div>
+    </header>
+    <main>
+      {notice && <div className="notice" role="status"><span>{notice}</span><button onClick={() => setNotice('')} aria-label="Tutup pemberitahuan">×</button></div>}
+      {renderPage()}
+    </main>
+    <footer className="site-footer"><div className="footer-brand"><span className="brand-mark">K</span><span>Kampus Unggul</span></div><p>Prototipe e-learning untuk eksplorasi pengalaman belajar digital.</p><a href="https://github.com/chlayverts/zaza" target="_blank" rel="noreferrer">Lihat repositori ↗</a></footer>
+    {loginOpen && <div className="modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setLoginOpen(false); }}><section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title"><button className="modal-close" onClick={() => setLoginOpen(false)} aria-label="Tutup formulir masuk">×</button><p className="eyebrow">{supabaseConfigured ? 'AKUN KAMPUS UNGGUL' : 'MODE DEMO'}</p><h2 id="auth-title">{authMode === 'login' ? 'Selamat datang kembali' : 'Buat akun belajar'}</h2><p>{supabaseConfigured ? 'Masuk untuk menyimpan kursus dan profilmu.' : 'Gunakan akun demo untuk mencoba dashboard dan pendaftaran.'}</p>{!supabaseConfigured && <div className="demo-credentials"><span>Username</span><strong>student</strong><span>Password</span><strong>kampus123</strong></div>}<form onSubmit={event => void handleAuth(event)}><label>{supabaseConfigured ? 'Email' : 'Email atau username'}<input name="email" type={supabaseConfigured ? 'email' : 'text'} placeholder={supabaseConfigured ? 'nama@email.com' : 'student'} autoComplete="username" required /></label>{authMode === 'signup' && <label>Nama lengkap<input name="fullName" autoComplete="name" required /></label>}<label>Password<input name="password" type="password" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} minLength={6} required /></label>{authMessage && <p className="form-message" role="alert">{authMessage}</p>}<button className="button button-primary button-wide" type="submit">{authMode === 'login' ? 'Masuk' : 'Daftar'}</button></form>{supabaseConfigured && <button className="text-button auth-toggle" onClick={() => { setAuthMode(mode => mode === 'login' ? 'signup' : 'login'); setAuthMessage(''); }}>{authMode === 'login' ? 'Belum punya akun? Daftar' : 'Sudah punya akun? Masuk'}</button>}</section></div>}
+  </div>;
+}
+
+export default App;
