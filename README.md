@@ -59,7 +59,7 @@ This is a frontend demonstration only. Authentication and session data are handl
 
 ## Project status
 
-This is a portfolio prototype. A production version would need server-side authentication, persistent data, real form and enrollment endpoints, and real form and enrollment endpoints.
+This is a portfolio prototype. A production version would need server-side authentication, persistent data, real form and enrollment endpoints.
 
 ## Author
 
