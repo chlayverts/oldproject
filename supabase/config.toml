@@ -18,9 +18,6 @@ sql_paths = ["./schema.sql"]
 [studio]
 enabled = false
 
-[inbucket]
-enabled = false
-
 [storage]
 enabled = false
 
