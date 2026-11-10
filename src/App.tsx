@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { courses } from './data/courses';
 import type { Course } from './data/courses';
+import { getCourseLessons } from './data/lessons';
 import { readLocal, writeLocal } from './lib/localStore';
 import { supabase, supabaseConfigured } from './lib/supabase';
 import './styles.css';
 
-type Page = 'home' | 'courses' | 'dashboard' | 'calendar' | 'quiz' | 'profile' | 'forum' | 'materials';
+type Page = 'home' | 'courses' | 'dashboard' | 'calendar' | 'quiz' | 'profile' | 'forum' | 'materials' | 'learn';
 type DemoUser = { email: string; name: string };
 type QuizQuestion = { prompt: string; answers: string[]; correct: number };
 
@@ -18,6 +19,7 @@ const navigation: { id: Page; label: string }[] = [
   { id: 'quiz', label: 'Kuis' },
   { id: 'forum', label: 'Forum' },
   { id: 'materials', label: 'Materi' },
+  { id: 'learn', label: 'Belajar' },
 ];
 
 const questions: QuizQuestion[] = [
@@ -50,6 +52,14 @@ function App() {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [answers, setAnswers] = useState<number[]>([]);
   const [quizComplete, setQuizComplete] = useState(false);
+  const [activeCourseId, setActiveCourseId] = useState('data-science');
+  const [lessonIndex, setLessonIndex] = useState(0);
+  const [lessonProgress, setLessonProgress] = useState<Record<string, string[]>>(() => readLocal('zaza-lesson-progress', {}));
+  const [lessonAnswer, setLessonAnswer] = useState<number | null>(null);
+  const [lessonAnswerCorrect, setLessonAnswerCorrect] = useState<boolean | null>(null);
+  const [tutorQuestion, setTutorQuestion] = useState('');
+  const [tutorReply, setTutorReply] = useState('');
+  const [tutorLoading, setTutorLoading] = useState(false);
 
   const authenticated = Boolean(session || demoUser);
   const email = session?.user.email || demoUser?.email || '';
@@ -93,6 +103,26 @@ function App() {
     return () => { mounted = false; };
   }, [session]);
 
+  useEffect(() => {
+    const client = supabase;
+    const userId = session?.user.id;
+    if (!client || !userId) return;
+    let mounted = true;
+    void client.from('lesson_progress').select('course_id, lesson_id').eq('user_id', userId).then(({ data, error }) => {
+      if (!mounted) return;
+      if (error) {
+        setNotice('Progres belajar belum termuat. Jalankan pembaruan skema Supabase.');
+        return;
+      }
+      const grouped = (data || []).reduce<Record<string, string[]>>((result, row) => {
+        result[row.course_id] = [...(result[row.course_id] || []), row.lesson_id];
+        return result;
+      }, {});
+      setLessonProgress(grouped);
+    });
+    return () => { mounted = false; };
+  }, [session]);
+
   const visibleCourses = useMemo(() => {
     const query = search.trim().toLowerCase();
     return courses.filter(course => {
@@ -101,6 +131,15 @@ function App() {
     });
   }, [search, level]);
 
+  const enrolledCourses = courses.filter(course => enrolled.has(course.id));
+  const recommendedCourse = enrolledCourses.find(course => (lessonProgress[course.id] || []).length < getCourseLessons(course.id).length) || courses[0];
+  const recommendedLessons = getCourseLessons(recommendedCourse.id);
+  const recommendedLessonIndex = recommendedLessons.findIndex(lesson => !(lessonProgress[recommendedCourse.id] || []).includes(lesson.id));
+  const recommendedLesson = recommendedLessons[Math.max(0, recommendedLessonIndex)];
+  const totalLessons = enrolledCourses.reduce((count, course) => count + getCourseLessons(course.id).length, 0);
+  const completedLessons = enrolledCourses.reduce((count, course) => count + (lessonProgress[course.id] || []).filter(id => getCourseLessons(course.id).some(lesson => lesson.id === id)).length, 0);
+  const learningPercent = totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
+
   function navigate(target: Page) {
     if ((target === 'dashboard' || target === 'profile') && !authenticated) {
       setAuthMessage('Masuk untuk membuka halaman akun demo.');
@@ -108,8 +147,80 @@ function App() {
       setLoginOpen(true);
       return;
     }
+    if (target === 'learn' && !enrolled.size) {
+      setPage('courses');
+      setNotice('Daftar ke kursus terlebih dahulu untuk membuka materi belajar.');
+      return;
+    }
     setNotice('');
     setPage(target);
+  }
+
+  function openCourse(course: Course) {
+    if (!authenticated) {
+      setAuthMessage('Masuk untuk menyimpan progres belajar.');
+      setAuthMode('login');
+      setLoginOpen(true);
+      return;
+    }
+    if (!enrolled.has(course.id)) {
+      setNotice('Daftar ke kursus ini terlebih dahulu untuk membuka materinya.');
+      return;
+    }
+    const courseLessons = getCourseLessons(course.id);
+    const firstIncomplete = courseLessons.findIndex(lesson => !(lessonProgress[course.id] || []).includes(lesson.id));
+    setActiveCourseId(course.id);
+    setLessonIndex(firstIncomplete < 0 ? 0 : firstIncomplete);
+    setLessonAnswer(null);
+    setLessonAnswerCorrect(null);
+    setTutorQuestion('');
+    setTutorReply('');
+    setNotice('');
+    setPage('learn');
+  }
+
+  async function completeLesson() {
+    const lesson = getCourseLessons(activeCourseId)[lessonIndex];
+    if (!lesson || lessonAnswerCorrect !== true) return;
+    if ((lessonProgress[activeCourseId] || []).includes(lesson.id)) {
+      setNotice('Materi ini sudah selesai. Lanjutkan ke pelajaran berikutnya.');
+      return;
+    }
+    if (supabase && session) {
+      const { error } = await supabase.from('lesson_progress').upsert(
+        { user_id: session.user.id, course_id: activeCourseId, lesson_id: lesson.id },
+        { onConflict: 'user_id,lesson_id', ignoreDuplicates: true },
+      );
+      if (error) {
+        setNotice('Progres belum tersimpan. Pastikan pembaruan skema Supabase sudah diterapkan.');
+        return;
+      }
+    } else {
+      const next = { ...lessonProgress, [activeCourseId]: [...(lessonProgress[activeCourseId] || []), lesson.id] };
+      if (!writeLocal('zaza-lesson-progress', next)) {
+        setNotice('Browser tidak dapat menyimpan progres belajar.');
+        return;
+      }
+      setLessonProgress(next);
+    }
+    if (supabase && session) setLessonProgress(previous => ({ ...previous, [activeCourseId]: [...(previous[activeCourseId] || []), lesson.id] }));
+    setNotice('Pelajaran selesai. Progres belajarmu berhasil diperbarui.');
+  }
+
+  async function askTutor(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const question = tutorQuestion.trim();
+    const lesson = getCourseLessons(activeCourseId)[lessonIndex];
+    if (!question || !lesson) return;
+    setTutorLoading(true);
+    setTutorReply('');
+    if (supabase && session) {
+      const { data, error } = await supabase.functions.invoke('tutor', { body: { courseId: activeCourseId, lessonId: lesson.id, question } });
+      setTutorReply(error ? 'Tutor AI belum tersedia. Periksa konfigurasi Supabase Edge Function.' : (data?.answer || 'Tutor belum dapat menyiapkan jawaban.'));
+    } else {
+      setTutorReply(`Petunjuk dari materi â€œ${lesson.title}â€: ${lesson.content[0]} Coba hubungkan pertanyaanmu dengan contoh atau masalah yang sedang kamu pelajari.`);
+    }
+    setTutorLoading(false);
   }
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
@@ -254,9 +365,9 @@ function App() {
         <div className="course-card-content">
           <div className="course-meta"><span>{course.level}</span><span>{course.duration}</span></div>
           <h3>{course.title}</h3><p>{course.description}</p>
-          <button className={isEnrolled ? 'button button-secondary' : 'button button-primary'} type="button" aria-pressed={isEnrolled} onClick={() => void enroll(course)}>
-            {isEnrolled ? 'Terdaftar' : 'Daftar kursus'}
-          </button>
+          {isEnrolled
+            ? <div className="course-card-actions"><button className="button button-primary" type="button" onClick={() => openCourse(course)}>Lanjut belajar</button><span className="helper-text" aria-label={`${getCourseLessons(course.id).filter(lesson => (lessonProgress[course.id] || []).includes(lesson.id)).length} dari ${getCourseLessons(course.id).length} pelajaran selesai`}>{getCourseLessons(course.id).filter(lesson => (lessonProgress[course.id] || []).includes(lesson.id)).length}/{getCourseLessons(course.id).length} pelajaran</span></div>
+            : <button className="button button-primary" type="button" onClick={() => void enroll(course)}>Daftar kursus</button>}
         </div>
       </article>
     );
@@ -281,7 +392,8 @@ function App() {
       const myCourses = courses.filter(course => enrolled.has(course.id));
       return <section className="page-section">
         <div className="section-heading"><p className="eyebrow">DASHBOARD</p><h1>Selamat datang, {name}</h1><p>Ringkasan perjalanan belajarmu ada di sini.</p></div>
-        <div className="metric-grid"><article className="metric-card"><span>Kursus di daftar belajar</span><strong>{enrolled.size}</strong></article><article className="metric-card"><span>Kuis tersedia</span><strong>{questions.length}</strong></article><article className="metric-card"><span>Status akun</span><strong>{supabaseConfigured ? 'Terhubung' : 'Demo lokal'}</strong></article></div>
+        <div className="metric-grid"><article className="metric-card"><span>Kursus di daftar belajar</span><strong>{enrolled.size}</strong></article><article className="metric-card"><span>Pelajaran selesai</span><strong>{completedLessons}{totalLessons ? ` / ${totalLessons}` : ''}</strong></article><article className="metric-card"><span>Progres kursus</span><strong>{learningPercent}%</strong></article></div>
+        <section className="recommendation-card" aria-labelledby="recommendation-title"><div><p className="eyebrow">LANGKAH BERIKUTNYA</p><h2 id="recommendation-title">{enrolled.has(recommendedCourse.id) ? recommendedLesson ? `Lanjutkan: ${recommendedLesson.title}` : 'Pilih kursus untuk memulai' : `Direkomendasikan: ${recommendedCourse.title}`}</h2><p>{enrolled.has(recommendedCourse.id) ? recommendedLesson ? `Pelajaran berikutnya di ${recommendedCourse.title} Â· ${recommendedLesson.duration}` : 'Semua pelajaran pada kursusmu sudah selesai.' : recommendedCourse.description}</p></div><button className="button button-primary" onClick={() => enrolled.has(recommendedCourse.id) ? openCourse(recommendedCourse) : navigate('courses')}>{enrolled.has(recommendedCourse.id) ? recommendedLesson ? 'Lanjut belajar' : 'Jelajahi kursus' : 'Jelajahi kursus'}</button></section>
         <div className="section-heading compact"><h2>Kursus pilihanmu</h2><button className="text-button" onClick={() => navigate('courses')}>Lihat katalog â†’</button></div>
         <div className="course-grid">{myCourses.map(courseCard)}</div>
         {myCourses.length === 0 && <p className="empty-state">Belum ada kursus. Jelajahi katalog untuk menambahkan kursus demo.</p>}
@@ -295,6 +407,25 @@ function App() {
           <div className="calendar-grid" role="grid" aria-label={'Kalender ' + monthLabel}>{['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(day => <span className="calendar-weekday" role="columnheader" key={day}>{day}</span>)}{leadingDays.map(day => <span className="calendar-day muted" role="gridcell" aria-hidden="true" key={'empty-' + day} />)}{days.map(day => <span className={calendarEvents.some(event => event.day === day) ? 'calendar-day has-event' : 'calendar-day'} role="gridcell" key={day} aria-label={day + ' ' + monthLabel}>{day}</span>)}</div>
         </div>
         <div className="event-list"><h2>Agenda contoh</h2>{calendarEvents.map(event => <article className="event-row" key={event.day}><time>{event.day} {monthLabel.split(' ')[0]}</time><div><strong>{event.title}</strong><span>{event.time}</span></div></article>)}</div>
+      </section>;
+    }
+
+    if (page === 'learn') {
+      const course = courses.find(item => item.id === activeCourseId);
+      const courseLessons = getCourseLessons(activeCourseId);
+      const lesson = courseLessons[lessonIndex];
+      if (!authenticated || !course || !enrolled.has(activeCourseId) || !lesson) return <section className="page-section narrow">{signInPrompt()}</section>;
+      const completed = (lessonProgress[activeCourseId] || []).includes(lesson.id);
+      const doneCount = courseLessons.filter(item => (lessonProgress[activeCourseId] || []).includes(item.id)).length;
+      return <section className="page-section learning-layout">
+        <div className="section-heading"><p className="eyebrow">RUANG BELAJAR Â· {course.title.toUpperCase()}</p><h1>{lesson.title}</h1><p>Pelajari materinya, jawab pertanyaan singkat, lalu simpan progresmu.</p></div>
+        <div className="learning-progress" aria-label={`Progres ${doneCount} dari ${courseLessons.length} pelajaran`}><div><span>Progres kursus</span><strong>{doneCount} dari {courseLessons.length} pelajaran Â· {Math.round((doneCount / courseLessons.length) * 100)}%</strong></div><progress value={doneCount} max={courseLessons.length}>{doneCount} dari {courseLessons.length}</progress></div>
+        <div className="learning-columns"><aside className="lesson-list" aria-label="Daftar pelajaran"><h2>Pelajaran kursus</h2>{courseLessons.map((item, index) => <button key={item.id} className={index === lessonIndex ? 'lesson-link active' : 'lesson-link'} aria-current={index === lessonIndex ? 'step' : undefined} onClick={() => { setLessonIndex(index); setLessonAnswer(null); setLessonAnswerCorrect(null); setTutorReply(''); }}><span>{(lessonProgress[activeCourseId] || []).includes(item.id) ? 'âœ“' : String(index + 1).padStart(2, '0')}</span><span>{item.title}<small>{item.duration}</small></span></button>)}</aside>
+          <div className="lesson-content"><article className="lesson-reading"><p className="eyebrow">MATERI Â· {lesson.duration}</p>{lesson.content.map(paragraph => <p key={paragraph}>{paragraph}</p>)}</article>
+            <section className="lesson-check" aria-labelledby="lesson-check-title"><p className="eyebrow">CEK PEMAHAMAN</p><h2 id="lesson-check-title">{lesson.check.question}</h2><div className="answer-list" role="group" aria-label="Pilih jawaban"><button className={lessonAnswer === 0 ? 'answer-option selected' : 'answer-option'} aria-pressed={lessonAnswer === 0} onClick={() => { setLessonAnswer(0); setLessonAnswerCorrect(null); }}>{lesson.check.answers[0]}</button><button className={lessonAnswer === 1 ? 'answer-option selected' : 'answer-option'} aria-pressed={lessonAnswer === 1} onClick={() => { setLessonAnswer(1); setLessonAnswerCorrect(null); }}>{lesson.check.answers[1]}</button><button className={lessonAnswer === 2 ? 'answer-option selected' : 'answer-option'} aria-pressed={lessonAnswer === 2} onClick={() => { setLessonAnswer(2); setLessonAnswerCorrect(null); }}>{lesson.check.answers[2]}</button></div><div className="lesson-check-actions"><button className="button button-outline" disabled={lessonAnswer === null} onClick={() => setLessonAnswerCorrect(lessonAnswer === lesson.check.correct)}>Periksa jawaban</button>{completed || lessonAnswerCorrect === true ? <button className="button button-primary" onClick={() => void completeLesson()}>{completed ? 'Simpan progres' : 'Tandai selesai'}</button> : null}</div>{lessonAnswerCorrect !== null && <p className={lessonAnswerCorrect ? 'inline-feedback success' : 'inline-feedback error'} role="status">{lessonAnswerCorrect ? `Tepat! ${lesson.check.explanation}` : 'Belum tepat. Tinjau kembali materi dan coba lagi.'}</p>}{completed && <div className="next-lesson"><p className="inline-feedback success" role="status">Pelajaran ini sudah selesai.</p>{lessonIndex + 1 < courseLessons.length && <button className="text-button" onClick={() => { setLessonIndex(index => index + 1); setLessonAnswer(null); setLessonAnswerCorrect(null); setTutorReply(''); }}>Lanjut ke pelajaran berikutnya â†’</button>}</div>}</section>
+            <section className="tutor-panel" aria-labelledby="tutor-title"><p className="eyebrow">ASISTEN BELAJAR</p><h2 id="tutor-title">Tanya tutor tentang materi</h2><p>{supabase && session ? 'Tutor AI akan menjawab berdasarkan materi pelajaran ini.' : 'Mode demo memberi petunjuk dari materi tanpa mengirim data ke layanan luar.'}</p><form onSubmit={event => void askTutor(event)}><label className="sr-only" htmlFor="tutor-question">Pertanyaan untuk tutor</label><textarea id="tutor-question" value={tutorQuestion} onChange={event => setTutorQuestion(event.target.value)} maxLength={500} placeholder="Contoh: bagaimana menerapkan konsep ini?" required /><button className="button button-primary" type="submit" disabled={tutorLoading}>{tutorLoading ? 'Menyiapkan jawabanâ€¦' : 'Tanya tutor'}</button></form>{tutorReply && <p className="tutor-reply" role="status">{tutorReply}</p>}</section>
+          </div>
+        </div>
       </section>;
     }
 
@@ -338,7 +469,7 @@ function App() {
       {notice && <div className="notice" role="status"><span>{notice}</span><button onClick={() => setNotice('')} aria-label="Tutup pemberitahuan">Ã—</button></div>}
       {renderPage()}
     </main>
-    <footer className="site-footer"><div className="footer-brand"><span className="brand-mark">K</span><span>Kampus Unggul</span></div><p>Prototipe e-learning untuk eksplorasi pengalaman belajar digital.</p><a href="https://github.com/chlayverts/zaza" target="_blank" rel="noreferrer">Lihat repositori â†—</a></footer>
+    <footer className="site-footer"><div className="footer-brand"><span className="brand-mark">K</span><span>Kampus Unggul</span></div><p>Prototipe e-learning untuk eksplorasi pengalaman belajar digital.</p><a href="https://github.com/chlayverts/oldproject" target="_blank" rel="noreferrer">Lihat repositori â†—</a></footer>
     {loginOpen && <div className="modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setLoginOpen(false); }}><section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title"><button className="modal-close" onClick={() => setLoginOpen(false)} aria-label="Tutup formulir masuk">Ã—</button><p className="eyebrow">{supabaseConfigured ? 'AKUN KAMPUS UNGGUL' : 'MODE DEMO'}</p><h2 id="auth-title">{authMode === 'login' ? 'Selamat datang kembali' : 'Buat akun belajar'}</h2><p>{supabaseConfigured ? 'Masuk untuk menyimpan kursus dan profilmu.' : 'Gunakan akun demo untuk mencoba dashboard dan pendaftaran.'}</p>{!supabaseConfigured && <div className="demo-credentials"><span>Username</span><strong>student</strong><span>Password</span><strong>kampus123</strong></div>}<form onSubmit={event => void handleAuth(event)}><label>{supabaseConfigured ? 'Email' : 'Email atau username'}<input name="email" type={supabaseConfigured ? 'email' : 'text'} placeholder={supabaseConfigured ? 'nama@email.com' : 'student'} autoComplete="username" required /></label>{authMode === 'signup' && <label>Nama lengkap<input name="fullName" autoComplete="name" required /></label>}<label>Password<input name="password" type="password" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} minLength={6} required /></label>{authMessage && <p className="form-message" role="alert">{authMessage}</p>}<button className="button button-primary button-wide" type="submit">{authMode === 'login' ? 'Masuk' : 'Daftar'}</button></form>{supabaseConfigured && <button className="text-button auth-toggle" onClick={() => { setAuthMode(mode => mode === 'login' ? 'signup' : 'login'); setAuthMessage(''); }}>{authMode === 'login' ? 'Belum punya akun? Daftar' : 'Sudah punya akun? Masuk'}</button>}</section></div>}
   </div>;
 }
