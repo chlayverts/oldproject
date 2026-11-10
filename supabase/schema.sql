@@ -167,4 +167,9 @@ create policy "Users can update their own lesson progress"
     )
   );
 
-create index 
+create index if not exists enrollments_user_id_idx
+  on public.enrollments (user_id);
+
+create index if not exists lesson_progress_user_id_idx
+  on public.lesson_progress (user_id);
+

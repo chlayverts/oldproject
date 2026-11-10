@@ -190,4 +190,9 @@ test('landing page and sign-in dialog fit small phone screens', async ({ page })
     const dialog = page.getByRole('dialog');
     const bounds = await dialog.boundingBox();
     expect(bounds).not.toBeNull();
-    expect
+    expect(bounds!.x).toBeGreaterThanOrEqual(0);
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
+    await page.getByRole('button', { name: 'Tutup formulir masuk' }).click();
+  }
+});
+

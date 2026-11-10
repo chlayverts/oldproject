@@ -366,4 +366,11 @@ main { min-height: calc(100vh - 180px); }
   .dashboard-metric { min-height: 88px; }
   .dashboard-sidebar { grid-template-columns: 1fr; }
   .study-tip-card { grid-column: auto; }
- 
+  .continue-card { min-height: 250px; padding: 22px; }
+  .continue-art { right: -70px; opacity: .18; }
+  .dashboard-section-heading h2 { font-size: 18px; }
+  .dashboard-section-heading .text-button { font-size: 10px; }
+  .dashboard-empty-state { grid-template-columns: 42px 1fr; gap: 12px; }
+  .dashboard-empty-state .button { grid-column: 2; justify-self: start; }
+}
+

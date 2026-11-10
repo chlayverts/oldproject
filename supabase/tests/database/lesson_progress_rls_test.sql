@@ -71,4 +71,8 @@ set local request.jwt.claim.sub = '987fcdeb-51a2-43d7-9012-345678901234';
 select results_eq(
   $$select lesson_id from public.lesson_progress order by lesson_id$$,
   array['ai-ethics-lesson-1'::text],
-  'A second lear
+  'A second learner reads only their own progress'
+);
+
+select * from finish();
+rollback;
