@@ -9,7 +9,8 @@ Kampus Unggul is a responsive e-learning interface prototype built with HTML, CS
 - Responsive multi-page interface
 - Course catalog with search and level filters
 - Demo login flow and student dashboard
-- Calendar navigation and quiz interactions
+- Course search, level filters, and local demo enrollment
+- Calendar navigation, quiz scoring, and locally saved profile fields
 - Form validation and accessible interaction patterns
 
 ## Technology
@@ -39,7 +40,7 @@ The login flow uses hard-coded demo credentials in the client-side JavaScript:
 - Username: `student`
 - Password: `kampus123`
 
-This is a frontend demonstration only. Authentication and session data are handled in the browser, so this project must not be used to protect real accounts or personal data. Forms and course actions are also demonstrations unless connected to a backend.
+This is a frontend demonstration only. Authentication and session data are handled in the browser, so this project must not be used to protect real accounts or personal data. Course enrollment and profile edits are stored only in this browser for demonstration. The contact form does not send messages, and downloadable materials are placeholders. A production version needs server-side authentication and persistent data.
 
 ## Project structure
 
@@ -53,7 +54,7 @@ This is a frontend demonstration only. Authentication and session data are handl
 ├── downloads.html   # Learning resources
 ├── profile.html     # Student profile
 ├── quiz.html        # Interactive quiz
-├── styles.css       # Shared styling
+├── styles.css       # Shared styling and responsive design
 └── script.js        # Shared interactions
 ```
 
