@@ -43,6 +43,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      lesson_progress: {
+        Row: {
+          user_id: string;
+          course_id: string;
+          lesson_id: string;
+          completed_at: string;
+        };
+        Insert: {
+          user_id: string;
+          course_id: string;
+          lesson_id: string;
+          completed_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          course_id?: string;
+          lesson_id?: string;
+          completed_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -50,3 +71,4 @@ export type Database = {
     CompositeTypes: Record<string, never>;
   };
 };
+
