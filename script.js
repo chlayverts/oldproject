@@ -445,6 +445,51 @@ const UIManager = {
     }
 };
 
+// ===== PROFILE MANAGER =====
+const ProfileManager = {
+    fields: ['fullName', 'email', 'phone', 'bio'],
+
+    init() {
+        const form = document.querySelector('.profile-form');
+        if (!form) return;
+
+        const saved = StorageManager.get('profile');
+        if (saved) {
+            this.fields.forEach(id => {
+                const field = document.getElementById(id);
+                if (field && typeof saved[id] === 'string') field.value = saved[id];
+            });
+            const name = document.querySelector('.profile-info h2');
+            if (name && saved.fullName) name.textContent = saved.fullName;
+        }
+
+        form.addEventListener('submit', event => {
+            event.preventDefault();
+            if (!form.reportValidity()) return;
+
+            const profile = {};
+            this.fields.forEach(id => {
+                const field = document.getElementById(id);
+                if (field) profile[id] = field.value.trim();
+            });
+
+            if (!profile.fullName || !Utils.isValidEmail(profile.email)) {
+                Utils.showToast('Periksa kembali nama dan alamat email.', 'error');
+                return;
+            }
+
+            if (!StorageManager.set('profile', profile)) {
+                Utils.showToast('Profil tidak dapat disimpan di browser ini.', 'error');
+                return;
+            }
+
+            const name = document.querySelector('.profile-info h2');
+            if (name) name.textContent = profile.fullName;
+            Utils.showToast('Profil tersimpan di browser demo ini.', 'success');
+        });
+    }
+};
+
 // ===== CALENDAR MANAGER =====
 const CalendarManager = {
     currentMonth: new Date().getMonth(),
@@ -549,22 +594,15 @@ const QuizManager = {
     currentQuestion: 1,
     score: 0,
     totalQuestions: 5,
+    answers: {},
 
-    /**
-     * Initialize quiz
-     */
     init() {
         if (!document.querySelector('.quiz-question')) return;
-
         this.showQuestion(1);
         this.initOptions();
     },
 
-    /**
-     * Show specific question
-     */
     showQuestion(questionNumber) {
-        // Hide all questions
         for (let i = 1; i <= this.totalQuestions; i++) {
             const question = document.getElementById(`question${i}`);
             if (question) {
@@ -573,75 +611,63 @@ const QuizManager = {
             }
         }
 
-        // Show current question
         const current = document.getElementById(`question${questionNumber}`);
         if (current) {
             current.style.display = 'block';
             current.setAttribute('aria-hidden', 'false');
+            const options = current.querySelectorAll('.quiz-option');
+            options.forEach((option, index) => {
+                const isSelected = this.answers[questionNumber] === index;
+                option.classList.toggle('selected', isSelected);
+                option.setAttribute('aria-checked', String(isSelected));
+            });
         }
 
-        // Update navigation
         const currentDisplay = document.getElementById('currentQuestion');
-        if (currentDisplay) {
-            currentDisplay.textContent = questionNumber;
-        }
+        if (currentDisplay) currentDisplay.textContent = questionNumber;
 
         const prevBtn = document.getElementById('prevBtn');
         const nextBtn = document.getElementById('nextBtn');
-
-        if (prevBtn) {
-            prevBtn.disabled = questionNumber === 1;
-        }
-        if (nextBtn) {
-            nextBtn.textContent = questionNumber === this.totalQuestions ? 'Selesai' : 'Selanjutnya';
-        }
+        if (prevBtn) prevBtn.disabled = questionNumber === 1;
+        if (nextBtn) nextBtn.textContent = questionNumber === this.totalQuestions ? 'Selesai' : 'Selanjutnya';
     },
 
-    /**
-     * Initialize quiz options
-     */
     initOptions() {
         document.querySelectorAll('.quiz-option').forEach(option => {
-            option.addEventListener('click', () => {
-                const options = option.parentElement.querySelectorAll('.quiz-option');
-                options.forEach(opt => {
-                    opt.classList.remove('selected');
-                    opt.setAttribute('aria-selected', 'false');
-                });
-                option.classList.add('selected');
-                option.setAttribute('aria-selected', 'true');
-            });
-
-            // Keyboard support
             option.setAttribute('role', 'radio');
             option.setAttribute('tabindex', '0');
-            option.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    option.click();
+            option.setAttribute('aria-checked', 'false');
+
+            const selectOption = () => {
+                const question = option.closest('.quiz-question');
+                const questionNumber = Number(question?.id.replace('question', ''));
+                const options = Array.from(question?.querySelectorAll('.quiz-option') || []);
+                const answerIndex = options.indexOf(option);
+                if (!questionNumber || answerIndex < 0) return;
+
+                this.answers[questionNumber] = answerIndex;
+                options.forEach((item, index) => {
+                    const selected = index === answerIndex;
+                    item.classList.toggle('selected', selected);
+                    item.setAttribute('aria-checked', String(selected));
+                });
+            };
+
+            option.addEventListener('click', selectOption);
+            option.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    selectOption();
                 }
             });
         });
     },
 
-    /**
-     * Check answer
-     */
-    checkAnswer(questionNumber) {
-        const question = document.getElementById(`question${questionNumber}`);
-        if (!question) return;
-
-        const selected = question.querySelector('.quiz-option.selected');
-        if (selected && selected.dataset.correct === 'true') {
-            this.score++;
-        }
-    },
-
-    /**
-     * Next question
-     */
     nextQuestion() {
-        this.checkAnswer(this.currentQuestion);
+        if (typeof this.answers[this.currentQuestion] !== 'number') {
+            Utils.showToast('Pilih satu jawaban sebelum melanjutkan.', 'warning');
+            return;
+        }
 
         if (this.currentQuestion < this.totalQuestions) {
             this.currentQuestion++;
@@ -651,9 +677,6 @@ const QuizManager = {
         }
     },
 
-    /**
-     * Previous question
-     */
     previousQuestion() {
         if (this.currentQuestion > 1) {
             this.currentQuestion--;
@@ -661,10 +684,21 @@ const QuizManager = {
         }
     },
 
-    /**
-     * Show results
-     */
     showResults() {
+        const unanswered = Array.from({ length: this.totalQuestions }, (_, index) => index + 1)
+            .some(questionNumber => typeof this.answers[questionNumber] !== 'number');
+        if (unanswered) {
+            Utils.showToast('Lengkapi semua jawaban sebelum melihat hasil.', 'warning');
+            return;
+        }
+
+        this.score = 0;
+        for (let questionNumber = 1; questionNumber <= this.totalQuestions; questionNumber++) {
+            const question = document.getElementById(`question${questionNumber}`);
+            const selected = question?.querySelectorAll('.quiz-option')[this.answers[questionNumber]];
+            if (selected?.dataset.correct === 'true') this.score++;
+        }
+
         const resultsSection = document.getElementById('quiz-results');
         const scoreDisplay = document.getElementById('finalScore');
         const messageDisplay = document.getElementById('scoreMessage');
@@ -674,35 +708,23 @@ const QuizManager = {
             resultsSection.setAttribute('aria-hidden', 'false');
             scoreDisplay.textContent = this.score;
 
-            let message = '';
-            if (this.score === 5) {
-                message = 'Luar biasa! Anda benar-benar menguasai materi.';
-            } else if (this.score >= 3) {
-                message = 'Bagus! Anda memiliki pemahaman yang baik.';
-            } else {
-                message = 'Perlu belajar lebih banyak. Coba lagi!';
-            }
+            const message = this.score === 5
+                ? 'Luar biasa! Anda benar-benar menguasai materi.'
+                : this.score >= 3
+                    ? 'Bagus! Anda memiliki pemahaman yang baik.'
+                    : 'Perlu belajar lebih banyak. Coba lagi!';
+            if (messageDisplay) messageDisplay.textContent = message;
 
-            if (messageDisplay) {
-                messageDisplay.textContent = message;
-            }
-
-            // Hide navigation
             const nav = document.querySelector('.quiz-navigation');
-            if (nav) {
-                nav.style.display = 'none';
-            }
-
+            if (nav) nav.style.display = 'none';
             Utils.showToast(`Anda mendapat skor ${this.score} dari ${this.totalQuestions}`, 'success');
         }
     },
 
-    /**
-     * Retake quiz
-     */
     retake() {
         this.currentQuestion = 1;
         this.score = 0;
+        this.answers = {};
 
         const resultsSection = document.getElementById('quiz-results');
         if (resultsSection) {
@@ -711,10 +733,7 @@ const QuizManager = {
         }
 
         const nav = document.querySelector('.quiz-navigation');
-        if (nav) {
-            nav.style.display = 'flex';
-        }
-
+        if (nav) nav.style.display = 'flex';
         this.showQuestion(1);
     }
 };
@@ -825,6 +844,7 @@ document.addEventListener('DOMContentLoaded', function() {
     UIManager.initSmoothScroll();
     UIManager.updateUserInterface();
     UIManager.initFormValidation();
+    ProfileManager.init();
     CalendarManager.init();
     QuizManager.init();
 
@@ -880,19 +900,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('All systems initialized successfully');
 });
-
-// ===== SERVICE WORKER REGISTRATION (untuk PWA) =====
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-                console.log('ServiceWorker registered:', registration);
-            })
-            .catch(error => {
-                console.log('ServiceWorker registration failed:', error);
-            });
-    });
-}
 
 // ===== EXPORT FOR MODULES (jika menggunakan build system) =====
 if (typeof module !== 'undefined' && module.exports) {
