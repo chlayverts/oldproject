@@ -75,13 +75,13 @@
                 </div>
 
                 <div class="profile-main">
-                    <div class="profile-tabs">
-                        <button class="tab-btn active" onclick="switchTab('personal')">Personal</button>
-                        <button class="tab-btn" onclick="switchTab('academic')">Akademik</button>
-                        <button class="tab-btn" onclick="switchTab('settings')">Pengaturan</button>
+                    <div class="profile-tabs" role="tablist" aria-label="Tab profil mahasiswa">
+                        <button class="tab-btn active" id="tab-personal" role="tab" aria-controls="personal" aria-selected="true" tabindex="0" onclick="switchTab('personal', this)">Personal</button>
+                        <button class="tab-btn" id="tab-academic" role="tab" aria-controls="academic" aria-selected="false" tabindex="-1" onclick="switchTab('academic', this)">Akademik</button>
+                        <button class="tab-btn" id="tab-settings" role="tab" aria-controls="settings" aria-selected="false" tabindex="-1" onclick="switchTab('settings', this)">Pengaturan</button>
                     </div>
 
-                    <div id="personal" class="tab-content active">
+                    <div id="personal" class="tab-content active" role="tabpanel" aria-labelledby="tab-personal" aria-hidden="false">
                         <h3>Informasi Pribadi</h3>
                         <form class="profile-form">
                             <div class="form-group">
@@ -104,7 +104,7 @@
                         </form>
                     </div>
 
-                    <div id="academic" class="tab-content">
+                    <div id="academic" class="tab-content" role="tabpanel" aria-labelledby="tab-academic" aria-hidden="true">
                         <h3>Informasi Akademik</h3>
                         <div class="academic-info">
                             <div class="info-item">
@@ -155,7 +155,7 @@
                         </div>
                     </div>
 
-                    <div id="settings" class="tab-content">
+                    <div id="settings" class="tab-content" role="tabpanel" aria-labelledby="tab-settings" aria-hidden="true">
                         <h3>Pengaturan Akun</h3>
                         <div class="settings-section">
                             <h4>Notifikasi</h4>
