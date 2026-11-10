@@ -483,7 +483,7 @@ const ProfileManager = {
                 return;
             }
 
-            const name = document.querySelector('.profile-info h2');
+            const name = document.querySelector('.profile-avatar h3');
             if (name) name.textContent = profile.fullName;
             Utils.showToast('Profil tersimpan di browser demo ini.', 'success');
         });
