@@ -80,18 +80,16 @@ function App() {
 
   useEffect(() => {
     const client = supabase;
-    if (!client || !session) return;
+    const userId = session?.user.id;
+    if (!client || !userId) return;
     let mounted = true;
-    async function loadAccount() {
-      const [profile, enrollments] = await Promise.all([
-        client.from('profiles').select('full_name').eq('id', session.user.id).maybeSingle(),
-        client.from('enrollments').select('course_id').eq('user_id', session.user.id),
-      ]);
+    const profileRequest = client.from('profiles').select('full_name').eq('id', userId).maybeSingle();
+    const enrollmentRequest = client.from('enrollments').select('course_id').eq('user_id', userId);
+    void Promise.all([profileRequest, enrollmentRequest]).then(([profile, enrollments]) => {
       if (!mounted) return;
       if (profile.data?.full_name) setProfileName(profile.data.full_name);
       if (enrollments.data) setEnrolled(new Set(enrollments.data.map(row => row.course_id)));
-    }
-    void loadAccount().catch(() => setNotice('Data akun belum dapat dimuat.'));
+    }).catch(() => setNotice('Data akun belum dapat dimuat.'));
     return () => { mounted = false; };
   }, [session]);
 
@@ -284,7 +282,7 @@ function App() {
       return <section className="page-section">
         <div className="section-heading"><p className="eyebrow">DASHBOARD</p><h1>Selamat datang, {name}</h1><p>Ringkasan perjalanan belajarmu ada di sini.</p></div>
         <div className="metric-grid"><article className="metric-card"><span>Kursus di daftar belajar</span><strong>{enrolled.size}</strong></article><article className="metric-card"><span>Kuis tersedia</span><strong>{questions.length}</strong></article><article className="metric-card"><span>Status akun</span><strong>{supabaseConfigured ? 'Terhubung' : 'Demo lokal'}</strong></article></div>
-        <div className="section-heading compact"><h2>Kursus pilihanmu</h2><button className="text-button" onClick={() => navigate('courses')}>Lihat katalog →</button></div>
+        <div className="section-heading compact"><h2>Kursus pilihanmu</h2><button className="text-button" onClick={() => navigate('courses')}>Lihat katalog â†’</button></div>
         <div className="course-grid">{myCourses.map(courseCard)}</div>
         {myCourses.length === 0 && <p className="empty-state">Belum ada kursus. Jelajahi katalog untuk menambahkan kursus demo.</p>}
       </section>;
@@ -293,7 +291,7 @@ function App() {
     if (page === 'calendar') {
       return <section className="page-section">
         <div className="section-heading"><p className="eyebrow">JADWAL</p><h1>Kalender belajar</h1><p>Jadwal contoh untuk merencanakan sesi belajar.</p></div>
-        <div className="calendar-panel"><div className="calendar-toolbar"><button className="icon-button" onClick={() => setMonth(date => new Date(date.getFullYear(), date.getMonth() - 1, 1))} aria-label="Bulan sebelumnya">‹</button><h2>{monthLabel}</h2><button className="icon-button" onClick={() => setMonth(date => new Date(date.getFullYear(), date.getMonth() + 1, 1))} aria-label="Bulan berikutnya">›</button></div>
+        <div className="calendar-panel"><div className="calendar-toolbar"><button className="icon-button" onClick={() => setMonth(date => new Date(date.getFullYear(), date.getMonth() - 1, 1))} aria-label="Bulan sebelumnya">â€¹</button><h2>{monthLabel}</h2><button className="icon-button" onClick={() => setMonth(date => new Date(date.getFullYear(), date.getMonth() + 1, 1))} aria-label="Bulan berikutnya">â€º</button></div>
           <div className="calendar-grid" role="grid" aria-label={'Kalender ' + monthLabel}>{['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'].map(day => <span className="calendar-weekday" role="columnheader" key={day}>{day}</span>)}{leadingDays.map(day => <span className="calendar-day muted" role="gridcell" aria-hidden="true" key={'empty-' + day} />)}{days.map(day => <span className={calendarEvents.some(event => event.day === day) ? 'calendar-day has-event' : 'calendar-day'} role="gridcell" key={day} aria-label={day + ' ' + monthLabel}>{day}</span>)}</div>
         </div>
         <div className="event-list"><h2>Agenda contoh</h2>{calendarEvents.map(event => <article className="event-row" key={event.day}><time>{event.day} {monthLabel.split(' ')[0]}</time><div><strong>{event.title}</strong><span>{event.time}</span></div></article>)}</div>
@@ -324,7 +322,7 @@ function App() {
     }
 
     return <>
-      <section className="hero"><div className="hero-copy"><p className="eyebrow">BELAJAR DENGAN TUJUAN</p><h1>Bangun skill digital, selangkah demi selangkah.</h1><p>Temukan kursus praktis, ukur pemahamanmu, dan simpan progres belajar dalam satu ruang.</p><div className="hero-actions"><button className="button button-primary" onClick={() => navigate('courses')}>Jelajahi kursus <span aria-hidden="true">→</span></button><button className="button button-ghost" onClick={() => navigate('quiz')}>Coba kuis singkat</button></div><div className="hero-proof"><span><strong>06</strong> kursus contoh</span><span><strong>03</strong> topik latihan</span></div></div><div className="hero-visual" aria-label="Pratinjau ruang belajar"><div className="visual-window"><div className="visual-topline"><span /><span /><span /></div><div className="visual-title">Progress belajar</div><div className="visual-course"><span className="visual-icon">DS</span><div><strong>Data Science</strong><small>Modul 04 · Analisis data</small></div><span className="visual-percent">72%</span></div><div className="visual-progress"><i /></div><div className="visual-bottom"><span>Terus bergerak maju</span><b>↗</b></div></div><div className="hero-orbit orbit-one" /><div className="hero-orbit orbit-two" /></div></section>
+      <section className="hero"><div className="hero-copy"><p className="eyebrow">BELAJAR DENGAN TUJUAN</p><h1>Bangun skill digital, selangkah demi selangkah.</h1><p>Temukan kursus praktis, ukur pemahamanmu, dan simpan progres belajar dalam satu ruang.</p><div className="hero-actions"><button className="button button-primary" onClick={() => navigate('courses')}>Jelajahi kursus <span aria-hidden="true">â†’</span></button><button className="button button-ghost" onClick={() => navigate('quiz')}>Coba kuis singkat</button></div><div className="hero-proof"><span><strong>06</strong> kursus contoh</span><span><strong>03</strong> topik latihan</span></div></div><div className="hero-visual" aria-label="Pratinjau ruang belajar"><div className="visual-window"><div className="visual-topline"><span /><span /><span /></div><div className="visual-title">Progress belajar</div><div className="visual-course"><span className="visual-icon">DS</span><div><strong>Data Science</strong><small>Modul 04 Â· Analisis data</small></div><span className="visual-percent">72%</span></div><div className="visual-progress"><i /></div><div className="visual-bottom"><span>Terus bergerak maju</span><b>â†—</b></div></div><div className="hero-orbit orbit-one" /><div className="hero-orbit orbit-two" /></div></section>
       <section className="home-section"><div className="section-heading"><p className="eyebrow">KATALOG PILIHAN</p><h2>Mulai dari yang menarik perhatianmu</h2><p>Kursus contoh dengan topik yang relevan untuk perjalanan digital.</p></div><div className="course-grid">{courses.slice(0, 3).map(courseCard)}</div><div className="section-action"><button className="button button-outline" onClick={() => navigate('courses')}>Lihat semua kursus</button></div></section>
       <section className="feature-strip"><div><span className="feature-mark">01</span><h3>Belajar terarah</h3><p>Mulai dari materi fondasi hingga topik lanjutan.</p></div><div><span className="feature-mark">02</span><h3>Latihan singkat</h3><p>Uji pemahaman lewat kuis interaktif.</p></div><div><span className="feature-mark">03</span><h3>Progres tersimpan</h3><p>Mode demo menyimpan pilihan di browser; Supabase opsional untuk data akun.</p></div></section>
     </>;
@@ -337,12 +335,13 @@ function App() {
       <div className="header-actions">{authenticated ? <><button className="user-chip" onClick={() => navigate('profile')} aria-label={'Profil ' + name}><span className="avatar">{name.slice(0, 1).toUpperCase()}</span><span>{name}</span></button><button className="button button-small button-outline" onClick={() => void handleLogout()}>Keluar</button></> : <button className="button button-small button-primary" aria-label="Masuk Demo" onClick={() => { setAuthMode('login'); setLoginOpen(true); }}>Masuk</button>}</div>
     </header>
     <main>
-      {notice && <div className="notice" role="status"><span>{notice}</span><button onClick={() => setNotice('')} aria-label="Tutup pemberitahuan">×</button></div>}
+      {notice && <div className="notice" role="status"><span>{notice}</span><button onClick={() => setNotice('')} aria-label="Tutup pemberitahuan">Ã—</button></div>}
       {renderPage()}
     </main>
-    <footer className="site-footer"><div className="footer-brand"><span className="brand-mark">K</span><span>Kampus Unggul</span></div><p>Prototipe e-learning untuk eksplorasi pengalaman belajar digital.</p><a href="https://github.com/chlayverts/zaza" target="_blank" rel="noreferrer">Lihat repositori ↗</a></footer>
-    {loginOpen && <div className="modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setLoginOpen(false); }}><section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title"><button className="modal-close" onClick={() => setLoginOpen(false)} aria-label="Tutup formulir masuk">×</button><p className="eyebrow">{supabaseConfigured ? 'AKUN KAMPUS UNGGUL' : 'MODE DEMO'}</p><h2 id="auth-title">{authMode === 'login' ? 'Selamat datang kembali' : 'Buat akun belajar'}</h2><p>{supabaseConfigured ? 'Masuk untuk menyimpan kursus dan profilmu.' : 'Gunakan akun demo untuk mencoba dashboard dan pendaftaran.'}</p>{!supabaseConfigured && <div className="demo-credentials"><span>Username</span><strong>student</strong><span>Password</span><strong>kampus123</strong></div>}<form onSubmit={event => void handleAuth(event)}><label>{supabaseConfigured ? 'Email' : 'Email atau username'}<input name="email" type={supabaseConfigured ? 'email' : 'text'} placeholder={supabaseConfigured ? 'nama@email.com' : 'student'} autoComplete="username" required /></label>{authMode === 'signup' && <label>Nama lengkap<input name="fullName" autoComplete="name" required /></label>}<label>Password<input name="password" type="password" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} minLength={6} required /></label>{authMessage && <p className="form-message" role="alert">{authMessage}</p>}<button className="button button-primary button-wide" type="submit">{authMode === 'login' ? 'Masuk' : 'Daftar'}</button></form>{supabaseConfigured && <button className="text-button auth-toggle" onClick={() => { setAuthMode(mode => mode === 'login' ? 'signup' : 'login'); setAuthMessage(''); }}>{authMode === 'login' ? 'Belum punya akun? Daftar' : 'Sudah punya akun? Masuk'}</button>}</section></div>}
+    <footer className="site-footer"><div className="footer-brand"><span className="brand-mark">K</span><span>Kampus Unggul</span></div><p>Prototipe e-learning untuk eksplorasi pengalaman belajar digital.</p><a href="https://github.com/chlayverts/zaza" target="_blank" rel="noreferrer">Lihat repositori â†—</a></footer>
+    {loginOpen && <div className="modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setLoginOpen(false); }}><section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title"><button className="modal-close" onClick={() => setLoginOpen(false)} aria-label="Tutup formulir masuk">Ã—</button><p className="eyebrow">{supabaseConfigured ? 'AKUN KAMPUS UNGGUL' : 'MODE DEMO'}</p><h2 id="auth-title">{authMode === 'login' ? 'Selamat datang kembali' : 'Buat akun belajar'}</h2><p>{supabaseConfigured ? 'Masuk untuk menyimpan kursus dan profilmu.' : 'Gunakan akun demo untuk mencoba dashboard dan pendaftaran.'}</p>{!supabaseConfigured && <div className="demo-credentials"><span>Username</span><strong>student</strong><span>Password</span><strong>kampus123</strong></div>}<form onSubmit={event => void handleAuth(event)}><label>{supabaseConfigured ? 'Email' : 'Email atau username'}<input name="email" type={supabaseConfigured ? 'email' : 'text'} placeholder={supabaseConfigured ? 'nama@email.com' : 'student'} autoComplete="username" required /></label>{authMode === 'signup' && <label>Nama lengkap<input name="fullName" autoComplete="name" required /></label>}<label>Password<input name="password" type="password" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} minLength={6} required /></label>{authMessage && <p className="form-message" role="alert">{authMessage}</p>}<button className="button button-primary button-wide" type="submit">{authMode === 'login' ? 'Masuk' : 'Daftar'}</button></form>{supabaseConfigured && <button className="text-button auth-toggle" onClick={() => { setAuthMode(mode => mode === 'login' ? 'signup' : 'login'); setAuthMessage(''); }}>{authMode === 'login' ? 'Belum punya akun? Daftar' : 'Sudah punya akun? Masuk'}</button>}</section></div>}
   </div>;
 }
 
 export default App;
+
