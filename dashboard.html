@@ -171,21 +171,12 @@
 
     <script src="script.js" defer></script>
     <script>
-        // Session Protection - Redirect if not logged in
+        // The shared app script handles protected-page redirects.
         document.addEventListener('DOMContentLoaded', function () {
-            if (!AuthManager.isAuthenticated()) {
-                Utils.showToast('Silakan login terlebih dahulu', 'warning');
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 1500);
-            } else {
-                // Update welcome message with user name
-                const user = AuthManager.getCurrentUser();
-                const welcomeH1 = document.querySelector('.dashboard-hero h1');
-                if (welcomeH1 && user) {
-                    welcomeH1.textContent = `Selamat Datang, ${user.name}!`;
-                }
-            }
+            if (!AuthManager.isAuthenticated()) return;
+            const user = AuthManager.getCurrentUser();
+            const welcomeH1 = document.querySelector('.dashboard-hero h1');
+            if (welcomeH1 && user) welcomeH1.textContent = `Selamat Datang, ${user.name}!`;
         });
     </script>
 </body>
