@@ -310,7 +310,7 @@ function App() {
 
     if (page === 'profile') {
       if (!authenticated) return <section className="page-section narrow">{signInPrompt()}</section>;
-      return <section className="page-section narrow"><div className="section-heading"><p className="eyebrow">AKUN</p><h1>Profil belajar</h1><p>Perbarui nama yang digunakan di dashboard.</p></div><form className="profile-panel" onSubmit={event => void saveProfile(event)}><label>Email akun<input value={email} readOnly /></label><label>Nama tampilan<input name="fullName" defaultValue={profileName} required maxLength={80} /></label><p className="helper-text">{supabaseConfigured ? 'Profil disimpan pada akun Supabase.' : 'Profil disimpan di browser ini untuk mode demo.'}</p><button className="button button-primary" type="submit">Simpan profil</button></form></section>;
+      return <section className="page-section narrow"><div className="section-heading"><p className="eyebrow">AKUN</p><h1>Profil belajar</h1><p>Perbarui nama yang digunakan di dashboard.</p></div><form className="profile-panel" onSubmit={event => void saveProfile(event)}><label>Email akun<input value={email} readOnly /></label><label>Nama tampilan<input name="fullName" value={profileName} onChange={event => setProfileName(event.target.value)} required maxLength={80} /></label><p className="helper-text">{supabaseConfigured ? 'Profil disimpan pada akun Supabase.' : 'Profil disimpan di browser ini untuk mode demo.'}</p><button className="button button-primary" type="submit">Simpan profil</button></form></section>;
     }
 
     if (page === 'forum') {
