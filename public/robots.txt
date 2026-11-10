@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://chlayverts.github.io/oldproject/sitemap.xml
+
