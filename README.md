@@ -1,82 +1,66 @@
-# 🎓 Kampus Unggul - Belajar Santuy, Skill Mantul! 😎
+# Kampus Unggul
 
-![Project Status](https://img.shields.io/badge/status-gaspol-success.svg)
-![License](https://img.shields.io/badge/license-bebas-blue.svg)
-![Vibe](https://img.shields.io/badge/vibe-chill-orange.svg)
+Kampus Unggul is a responsive e-learning interface prototype built with HTML, CSS, and vanilla JavaScript. It demonstrates common learning-platform flows such as course discovery, a student dashboard, an academic calendar, discussion categories, downloadable resources, and a short quiz.
 
-Yo, welcome to **Kampus Unggul**! 👋
-Ini platform e-learning kekinian buat lo yang pengen upgrade skill tanpa ribet. Dibangun pake teknologi web murni (Vanilla), jadi enteng banget, no lag-lag club!
+**Live demo:** https://chlayverts.github.io/zaza/
 
-🌐 **Cek TKP (Live Demo):** [https://chlayverts.github.io/zaza/](https://chlayverts.github.io/zaza/)
+## Features
 
-## ✨ Fitur Kece Abis
+- Responsive multi-page interface
+- Course catalog with search and level filters
+- Demo login flow and student dashboard
+- Calendar navigation and quiz interactions
+- Form validation and accessible interaction patterns
 
-Nih alasan kenapa project ini keren parah (Score 10/10 bos!):
+## Technology
 
-* 📱 **Anti Burik di HP**: Tampilan responsif abis. Mau buka di HP, tablet, laptop, semua aman jaya.
-* 🎨 **Desain Estetik**: Pake warna modern, gradasi adem, dan glassmorphism yang lagi hits.
-* ♿ **Ramah Buat Semua**: Udah support screen reader & keyboard navigation. Inklusif banget deh!
-* ⚡ **Ngebut Parah**: Loading-nya cepet, ga pake lama. Ga bakal bikin emosi.
-* 🔒 **Aman Terkendali**: Udah dipasangin pengaman biar data ga bocor.
+- HTML5
+- CSS3
+- Vanilla JavaScript
 
-## 🛠️ Pake Apa Aja Sih?
+No build step or package installation is required.
 
-Ga pake framework yang berat-berat, kita back to basics biar solid:
+## Run locally
 
-* **HTML5** - Rangkanya doang
-* **CSS3** - Biar cakep (Styling)
-* **JavaScript (ES6+)** - Otaknya website
+Clone the repository and serve the project directory with any static HTTP server. For example:
 
-## 🚀 Cara Jalanin di Laptop Lo
-
-Mau coba utak-atik di komputer sendiri? Gampang bgt:
-
-1. **Sedot dulu repository-nya (Clone)**
-
-    ```bash
-    git clone https://github.com/chlayverts/zaza.git
-    ```
-
-2. **Masuk ke foldernya**
-
-    ```bash
-    cd zaza
-    ```
-
-3. **Jalanin deh!**
-    * Kalo pake VS Code, tinggal klik kanan `index.html` terus pilih "Open with Live Server".
-    * Atau kalo lo anak terminal banget: `python -m http.server 8000`
-
-4. **Buka Browser**
-    Langsung gas ke `http://localhost:8000`
-
-## 📂 Isinya Apa Aja?
-
-Dikit doang kok file-nya, ga bikin pusing:
-
-```text
-zaza/
-├── index.html          # Halaman Depan (Muka)
-├── dashboard.html      # Tempat Belajar (Dalam)
-├── courses.html        # Menu Pelajaran
-├── styles.css          # Make-up website
-├── script.js           # Mesinnya
-└── assets/             # Foto-foto
+```bash
+git clone https://github.com/chlayverts/zaza.git
+cd zaza
+python -m http.server 8000
 ```
 
-## 🔑 Mau Nyobain Login?
+Open http://localhost:8000.
 
-Biar kayak beneran, cobain fitur login pake akun rahasia ini:
+## Demo account
 
-* **Username:** `student`
-* **Password:** `kampus123`
+The login flow uses hard-coded demo credentials in the client-side JavaScript:
 
-## 👨‍💻 Yang Bikin
+- Username: `student`
+- Password: `kampus123`
 
-**Chlayverts**
+This is a frontend demonstration only. Authentication and session data are handled in the browser, so this project must not be used to protect real accounts or personal data. Forms and course actions are also demonstrations unless connected to a backend.
 
-* Kepoin GitHub gue: [@chlayverts](https://github.com/chlayverts)
+## Project structure
 
----
+```text
+.
+├── index.html       # Landing page
+├── dashboard.html   # Student dashboard
+├── courses.html     # Course catalog
+├── calendar.html    # Academic calendar
+├── forum.html       # Discussion categories
+├── downloads.html   # Learning resources
+├── profile.html     # Student profile
+├── quiz.html        # Interactive quiz
+├── styles.css       # Shared styling
+└── script.js        # Shared interactions
+```
 
-> Dibuat dengan ❤️ dan kopi. Santuy tapi produktif! ☕
+## Project status
+
+This is a portfolio prototype. A production version would need server-side authentication, persistent data, real form and enrollment endpoints, and a deployment configuration for its optional PWA assets.
+
+## Author
+
+**Chlayverts** · [GitHub profile](https://github.com/chlayverts)
