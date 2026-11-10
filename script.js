@@ -852,31 +852,19 @@ function searchCourses() {
     SearchManager.searchCourses();
 }
 
-function switchTab(tabName) {
-    event.preventDefault();
-    
-    // Hide all tabs
+function switchTab(tabName, trigger) {
     document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-        tab.setAttribute('aria-hidden', 'true');
+        const isActive = tab.id === tabName;
+        tab.classList.toggle('active', isActive);
+        tab.setAttribute('aria-hidden', String(!isActive));
     });
 
-    // Deactivate all tab buttons
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-        btn.setAttribute('aria-selected', 'false');
+    document.querySelectorAll('.tab-btn').forEach(button => {
+        const isActive = button === trigger;
+        button.classList.toggle('active', isActive);
+        button.setAttribute('aria-selected', String(isActive));
+        button.setAttribute('tabindex', isActive ? '0' : '-1');
     });
-
-    // Show selected tab
-    const selectedTab = document.getElementById(tabName);
-    if (selectedTab) {
-        selectedTab.classList.add('active');
-        selectedTab.setAttribute('aria-hidden', 'false');
-    }
-
-    // Activate button
-    event.target.classList.add('active');
-    event.target.setAttribute('aria-selected', 'true');
 }
 
 // ===== INITIALIZATION =====
