@@ -11,15 +11,21 @@ type Page = 'home' | 'courses' | 'dashboard' | 'calendar' | 'quiz' | 'profile' |
 type DemoUser = { email: string; name: string };
 type QuizQuestion = { prompt: string; answers: string[]; correct: number };
 
-const navigation: { id: Page; label: string }[] = [
-  { id: 'home', label: 'Beranda' },
-  { id: 'courses', label: 'Kursus' },
-  { id: 'dashboard', label: 'Dashboard' },
-  { id: 'calendar', label: 'Kalender' },
-  { id: 'quiz', label: 'Kuis' },
-  { id: 'forum', label: 'Forum' },
-  { id: 'materials', label: 'Materi' },
-  { id: 'learn', label: 'Belajar' },
+const navigationGroups: { label: string; items: { id: Page; label: string }[] }[] = [
+  { label: 'Belajar', items: [
+    { id: 'home', label: 'Beranda' },
+    { id: 'courses', label: 'Kursus' },
+    { id: 'learn', label: 'Materi belajar' },
+  ] },
+  { label: 'Aktivitas', items: [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'calendar', label: 'Kalender' },
+    { id: 'quiz', label: 'Kuis' },
+  ] },
+  { label: 'Komunitas', items: [
+    { id: 'forum', label: 'Forum' },
+    { id: 'materials', label: 'Pustaka' },
+  ] },
 ];
 
 const questions: QuizQuestion[] = [
@@ -135,7 +141,7 @@ function App() {
   const recommendedCourse = enrolledCourses.find(course => (lessonProgress[course.id] || []).length < getCourseLessons(course.id).length) || courses[0];
   const recommendedLessons = getCourseLessons(recommendedCourse.id);
   const recommendedLessonIndex = recommendedLessons.findIndex(lesson => !(lessonProgress[recommendedCourse.id] || []).includes(lesson.id));
-  const recommendedLesson = recommendedLessons[Math.max(0, recommendedLessonIndex)];
+  const recommendedLesson = recommendedLessons[recommendedLessonIndex] ?? null;
   const totalLessons = enrolledCourses.reduce((count, course) => count + getCourseLessons(course.id).length, 0);
   const completedLessons = enrolledCourses.reduce((count, course) => count + (lessonProgress[course.id] || []).filter(id => getCourseLessons(course.id).some(lesson => lesson.id === id)).length, 0);
   const learningPercent = totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0;
@@ -390,13 +396,33 @@ function App() {
     if (page === 'dashboard') {
       if (!authenticated) return <section className="page-section narrow">{signInPrompt()}</section>;
       const myCourses = courses.filter(course => enrolled.has(course.id));
-      return <section className="page-section">
-        <div className="section-heading"><p className="eyebrow">DASHBOARD</p><h1>Selamat datang, {name}</h1><p>Ringkasan perjalanan belajarmu ada di sini.</p></div>
-        <div className="metric-grid"><article className="metric-card"><span>Kursus di daftar belajar</span><strong>{enrolled.size}</strong></article><article className="metric-card"><span>Pelajaran selesai</span><strong>{completedLessons}{totalLessons ? ` / ${totalLessons}` : ''}</strong></article><article className="metric-card"><span>Progres kursus</span><strong>{learningPercent}%</strong></article></div>
-        <section className="recommendation-card" aria-labelledby="recommendation-title"><div><p className="eyebrow">LANGKAH BERIKUTNYA</p><h2 id="recommendation-title">{enrolled.has(recommendedCourse.id) ? recommendedLesson ? `Lanjutkan: ${recommendedLesson.title}` : 'Pilih kursus untuk memulai' : `Direkomendasikan: ${recommendedCourse.title}`}</h2><p>{enrolled.has(recommendedCourse.id) ? recommendedLesson ? `Pelajaran berikutnya di ${recommendedCourse.title} Â· ${recommendedLesson.duration}` : 'Semua pelajaran pada kursusmu sudah selesai.' : recommendedCourse.description}</p></div><button className="button button-primary" onClick={() => enrolled.has(recommendedCourse.id) ? openCourse(recommendedCourse) : navigate('courses')}>{enrolled.has(recommendedCourse.id) ? recommendedLesson ? 'Lanjut belajar' : 'Jelajahi kursus' : 'Jelajahi kursus'}</button></section>
-        <div className="section-heading compact"><h2>Kursus pilihanmu</h2><button className="text-button" onClick={() => navigate('courses')}>Lihat katalog â†’</button></div>
-        <div className="course-grid">{myCourses.map(courseCard)}</div>
-        {myCourses.length === 0 && <p className="empty-state">Belum ada kursus. Jelajahi katalog untuk menambahkan kursus demo.</p>}
+      const nextLessons = getCourseLessons(recommendedCourse.id);
+      const nextDone = nextLessons.filter(lesson => (lessonProgress[recommendedCourse.id] || []).includes(lesson.id)).length;
+      const nextPercent = nextLessons.length ? Math.round((nextDone / nextLessons.length) * 100) : 0;
+      const hasCourse = enrolled.has(recommendedCourse.id);
+      return <section className="page-section dashboard-page">
+        <div className="dashboard-welcome"><div><p className="eyebrow">RUANG BELAJAR <span aria-hidden="true">/</span> RINGKASAN</p><h1>Halo, {name}<span className="welcome-sparkle" aria-hidden="true">✦</span></h1><p>Setiap pelajaran kecil membawamu lebih dekat ke tujuan.</p></div><button className="button button-outline dashboard-calendar-action" onClick={() => navigate('calendar')}><span aria-hidden="true">▦</span> Lihat kalender</button></div>
+        <div className="dashboard-metrics" aria-label="Ringkasan progres belajar">
+          <article className="dashboard-metric"><span className="dashboard-metric-icon courses-icon" aria-hidden="true">▤</span><div><span>Kursus diikuti</span><strong>{enrolled.size}</strong></div><small>kursus aktif</small></article>
+          <article className="dashboard-metric"><span className="dashboard-metric-icon lessons-icon" aria-hidden="true">✓</span><div><span>Pelajaran selesai</span><strong>{completedLessons}<small>{totalLessons ? ' / ' + totalLessons : ''}</small></strong></div><small>{totalLessons ? 'terus bertumbuh' : 'mulai dari satu materi'}</small></article>
+          <article className="dashboard-metric"><span className="dashboard-metric-icon progress-icon" aria-hidden="true">↗</span><div><span>Progres keseluruhan</span><strong>{learningPercent}%</strong></div><div className="metric-progress" role="progressbar" aria-label="Progres keseluruhan" aria-valuenow={learningPercent} aria-valuemin={0} aria-valuemax={100}><i style={{ width: learningPercent + '%' }} /></div></article>
+        </div>
+        <div className="dashboard-layout"><div className="dashboard-main-column">
+          <section className={hasCourse ? 'continue-card' : 'continue-card continue-card-empty'} aria-labelledby="continue-title"><div className="continue-card-content">
+            <span className="continue-label"><span aria-hidden="true">✦</span> {hasCourse ? 'LANJUTKAN PERJALANAN' : 'MULAI PERJALANAN'}</span>
+            <h2 id="continue-title">{hasCourse ? recommendedLesson ? recommendedLesson.title : 'Kamu menuntaskan kursus ini!' : 'Satu langkah kecil, awal yang baik.'}</h2>
+            <p>{hasCourse ? recommendedLesson ? recommendedCourse.title + ' · ' + recommendedLesson.duration : 'Hebat, semua pelajaran ' + recommendedCourse.title + ' sudah selesai.' : 'Pilih kursus yang menarik dan pelajari materi pertamamu dengan santai.'}</p>
+            {hasCourse && <div className="continue-progress"><div><span>Progres kursus</span><strong>{nextDone} dari {nextLessons.length} pelajaran</strong></div><div className="continue-progress-track" role="progressbar" aria-label={'Progres ' + recommendedCourse.title} aria-valuenow={nextPercent} aria-valuemin={0} aria-valuemax={100}><i style={{ width: nextPercent + '%' }} /></div></div>}
+            <button className="button button-primary" onClick={() => hasCourse && recommendedLesson ? openCourse(recommendedCourse) : navigate('courses')}>{hasCourse && recommendedLesson ? 'Lanjut belajar' : hasCourse ? 'Jelajahi kursus lain' : 'Jelajahi kursus'} <span aria-hidden="true">→</span></button>
+          </div><div className="continue-art" aria-hidden="true"><span className="art-orbit art-orbit-one" /><span className="art-orbit art-orbit-two" /><span className="art-book">{hasCourse ? '✦' : 'K'}</span><span className="art-sparkle sparkle-one">✧</span><span className="art-sparkle sparkle-two">✦</span></div></section>
+          <div className="dashboard-section-heading"><div><p className="eyebrow">KOLEKSI BELAJARMU</p><h2>Kursus pilihanmu <span>{myCourses.length}</span></h2></div><button className="text-button" onClick={() => navigate('courses')}>Jelajahi katalog <span aria-hidden="true">→</span></button></div>
+          {myCourses.length ? <div className="course-grid dashboard-course-grid">{myCourses.map(courseCard)}</div> : <div className="dashboard-empty-state"><span className="empty-book" aria-hidden="true">▤</span><div><h3>Belum ada kursus di daftar belajarmu</h3><p>Jelajahi katalog dan pilih topik yang paling ingin kamu pelajari.</p></div><button className="button button-outline" onClick={() => navigate('courses')}>Lihat katalog</button></div>}
+        </div>
+        <aside className="dashboard-sidebar" aria-label="Ringkasan dan pintasan">
+          <section className="dashboard-side-card progress-summary-card"><div className="side-card-heading"><span className="side-card-icon" aria-hidden="true">◔</span><span>Ringkasan progres</span></div><div className="progress-summary-number">{learningPercent}<span>%</span></div><p>progres seluruh kursus</p><div className="side-progress-track" role="progressbar" aria-label="Progres seluruh kursus" aria-valuenow={learningPercent} aria-valuemin={0} aria-valuemax={100}><i style={{ width: learningPercent + '%' }} /></div><div className="progress-summary-footer"><span>{completedLessons} pelajaran selesai</span><span>{enrolled.size} kursus</span></div></section>
+          <section className="dashboard-side-card quick-links-card"><div className="side-card-heading"><span className="side-card-icon quick-icon" aria-hidden="true">⌘</span><span>Pintasan</span></div><button className="quick-link" onClick={() => navigate('calendar')}><span className="quick-link-symbol calendar-symbol" aria-hidden="true">▦</span><span><strong>Kalender belajar</strong><small>Atur jadwal belajarmu</small></span><span className="quick-chevron" aria-hidden="true">→</span></button><button className="quick-link" onClick={() => navigate('quiz')}><span className="quick-link-symbol quiz-symbol" aria-hidden="true">✓</span><span><strong>Coba kuis</strong><small>Uji pemahamanmu</small></span><span className="quick-chevron" aria-hidden="true">→</span></button></section>
+          <section className="study-tip-card"><span className="tip-icon" aria-hidden="true">✦</span><div><p className="eyebrow">CATATAN HARI INI</p><h3>Belajar sedikit tetap berarti.</h3><p>Selesaikan satu materi, lalu lanjutkan lagi saat kamu siap.</p></div></section>
+        </aside></div>
       </section>;
     }
 
@@ -462,7 +488,7 @@ function App() {
   return <div className="app-shell">
     <header className="site-header">
       <button className="brand" onClick={() => navigate('home')} aria-label="Kampus Unggul beranda"><span className="brand-mark">K</span><span>Kampus<span className="brand-light">Unggul</span><small>RUANG BELAJAR DIGITAL</small></span></button>
-      <nav className="main-nav" aria-label="Navigasi utama">{navigation.map(item => <button key={item.id} className={page === item.id ? 'nav-link active' : 'nav-link'} aria-current={page === item.id ? 'page' : undefined} onClick={() => navigate(item.id)}>{item.label}</button>)}</nav>
+      <nav className="main-nav" aria-label="Navigasi utama">{navigationGroups.map(group => <div className="nav-group" role="group" aria-label={group.label} key={group.label}><span className="nav-group-label">{group.label}</span><div className="nav-group-links">{group.items.map(item => <button key={item.id} className={page === item.id ? 'nav-link active' : 'nav-link'} aria-current={page === item.id ? 'page' : undefined} onClick={() => navigate(item.id)}>{item.label}</button>)}</div></div>)}</nav>
       <div className="header-actions">{authenticated ? <><button className="user-chip" onClick={() => navigate('profile')} aria-label={'Profil ' + name}><span className="avatar">{name.slice(0, 1).toUpperCase()}</span><span>{name}</span></button><button className="button button-small button-outline" onClick={() => void handleLogout()}>Keluar</button></> : <button className="button button-small button-primary" aria-label="Masuk Demo" onClick={() => { setAuthMode('login'); setLoginOpen(true); }}>Masuk</button>}</div>
     </header>
     <main>

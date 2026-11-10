@@ -8,7 +8,7 @@ test('demo user can search and enroll in a course', async ({ page }) => {
   await dialog.getByLabel('Password').fill('kampus123');
   await dialog.getByRole('button', { name: 'Masuk', exact: true }).click();
 
-  await expect(page.getByRole('heading', { name: /Selamat datang, Student Demo/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Halo, Student Demo/ })).toBeVisible();
   await page.getByRole('button', { name: 'Kursus', exact: true }).click();
   await page.getByPlaceholder('Cari kursus...').fill('Data Science');
 
@@ -48,7 +48,7 @@ test('learner completes a lesson and sees saved progress and the next recommenda
 
   await page.getByRole('button', { name: 'Dashboard', exact: true }).click();
   await expect(page.getByText('1 / 3')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Lanjutkan: Menyiapkan dan memahami data' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Menyiapkan dan memahami data' })).toBeVisible();
   await page.reload();
   await page.getByRole('button', { name: 'Dashboard', exact: true }).click();
   await expect(page.getByText('1 / 3')).toBeVisible();
@@ -117,7 +117,7 @@ test('profile edits persist in the demo browser session', async ({ page }) => {
   await page.reload();
   await expect(page.getByRole('button', { name: 'Profil Ayu Portofolio' })).toBeVisible();
   await page.getByRole('button', { name: 'Dashboard', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Selamat datang, Ayu Portofolio' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Halo, Ayu Portofolio/ })).toBeVisible();
 });
 
 test('calendar month navigation advances and returns', async ({ page }) => {
