@@ -1,8 +1,17 @@
+import { Ratelimit } from 'npm:@upstash/ratelimit@2.2.0';
+import { Redis } from 'npm:@upstash/redis@1.41.0';
+import { checkTutorRateLimit } from './rateLimit.ts';
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+const allowedOrigins = new Set([
+  'https://chlayverts.github.io',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+]);
 
 const lessonNotes: Record<string, string> = {
   'data-science-lesson-1': 'Analisis dimulai dari pertanyaan spesifik dan keputusan yang ingin didukung.',
@@ -25,14 +34,34 @@ const lessonNotes: Record<string, string> = {
   'cloud-computing-lesson-3': 'Biaya dan keamanan perlu ditinjau sepanjang siklus hidup layanan.',
 };
 
-const requestWindows = new Map<string, { startedAt: number; count: number }>();
+const redisUrl = Deno.env.get('UPSTASH_REDIS_REST_URL');
+const redisToken = Deno.env.get('UPSTASH_REDIS_REST_TOKEN');
+const redis = redisUrl && redisToken ? new Redis({ url: redisUrl, token: redisToken }) : null;
+const perMinute = redis ? new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(8, '60 s'),
+  prefix: 'oldproject:tutor:minute',
+  timeout: 1500,
+}) : null;
+const perDay = redis ? new Ratelimit({
+  redis,
+  limiter: Ratelimit.fixedWindow(40, '1 d'),
+  prefix: 'oldproject:tutor:day',
+  timeout: 1500,
+}) : null;
 
 Deno.serve(async (request) => {
-  if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  const origin = request.headers.get('Origin');
+  const responseHeaders = origin && allowedOrigins.has(origin)
+    ? { ...corsHeaders, 'Access-Control-Allow-Origin': origin, 'Vary': 'Origin' }
+    : corsHeaders;
   const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...responseHeaders, 'Content-Type': 'application/json' },
   });
+  if (request.method === 'OPTIONS') {
+    return origin && allowedOrigins.has(origin) ? new Response('ok', { headers: responseHeaders }) : json({ error: 'Origin tidak diizinkan.' }, 403);
+  }
   if (request.method !== 'POST') return json({ error: 'Metode tidak didukung.' }, 405);
 
   const authorization = request.headers.get('Authorization');
@@ -45,13 +74,8 @@ Deno.serve(async (request) => {
   });
   if (!userResponse.ok) return json({ error: 'Sesi akun tidak valid. Silakan masuk kembali.' }, 401);
   const user = await userResponse.json();
-  const now = Date.now();
-  const window = requestWindows.get(user.id);
-  if (window && now - window.startedAt < 60_000 && window.count >= 8) return json({ error: 'Batas tutor tercapai. Coba lagi sebentar.' }, 429);
-  if (!window || now - window.startedAt >= 60_000) requestWindows.set(user.id, { startedAt: now, count: 1 });
-  else requestWindows.set(user.id, { ...window, count: window.count + 1 });
 
-  let body: { lessonId?: string; question?: string };
+  let body: { courseId?: string; lessonId?: string; question?: string };
   try {
     body = await request.json();
   } catch {
@@ -59,10 +83,17 @@ Deno.serve(async (request) => {
   }
   const note = body.lessonId ? lessonNotes[body.lessonId] : undefined;
   const question = typeof body.question === 'string' ? body.question.trim().slice(0, 500) : '';
-  if (!note || !question) return json({ error: 'Pelajaran atau pertanyaan tidak valid.' }, 400);
+  const lessonCourseId = body.lessonId?.replace(/-lesson-[1-3]$/, '');
+  if (!note || !question || question.length < 3 || body.courseId !== lessonCourseId) return json({ error: 'Pelajaran atau pertanyaan tidak valid.' }, 400);
 
   const openAiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openAiKey) return json({ error: 'Tutor AI belum dikonfigurasi.' }, 503);
+
+  if (!perMinute || !perDay) return json({ error: 'Rate limit tutor belum dikonfigurasi.' }, 503);
+  const limitStatus = await checkTutorRateLimit(user.id, perMinute, perDay);
+  if (limitStatus === 'limited') return json({ error: 'Batas penggunaan tutor tercapai. Coba lagi nanti.' }, 429);
+  if (limitStatus === 'unavailable') return json({ error: 'Layanan pengaman tutor sedang tidak tersedia. Coba lagi nanti.' }, 503);
+
   const model = Deno.env.get('OPENAI_MODEL') || 'gpt-4.1-mini';
   const response = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',

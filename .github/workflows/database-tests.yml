@@ -1,0 +1,33 @@
+name: Database security tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check tutor function types
+        run: deno check supabase/functions/tutor/index.ts
+      - name: Test tutor rate limiting
+        run: deno test supabase/functions/tutor/rateLimit_test.ts
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start local Supabase
+        run: supabase start
+      - name: Test Row Level Security policies
+        run: supabase test db

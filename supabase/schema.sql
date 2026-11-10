@@ -19,8 +19,45 @@ create table if not exists public.lesson_progress (
   course_id text not null,
   lesson_id text not null,
   completed_at timestamptz not null default now(),
-  primary key (user_id, lesson_id)
+  primary key (user_id, lesson_id),
+  constraint lesson_progress_enrollment_fkey
+    foreign key (user_id, course_id)
+    references public.enrollments (user_id, course_id)
+    on delete cascade,
+  constraint lesson_progress_known_lesson_check
+    check (
+      course_id in ('data-science', 'web-development', 'ai-ethics', 'machine-learning', 'cyber-security', 'cloud-computing')
+      and lesson_id ~ ('^' || course_id || '-lesson-[1-3]$')
+    )
 );
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'lesson_progress_enrollment_fkey'
+      and conrelid = 'public.lesson_progress'::regclass
+  ) then
+    alter table public.lesson_progress
+      add constraint lesson_progress_enrollment_fkey
+      foreign key (user_id, course_id)
+      references public.enrollments (user_id, course_id)
+      on delete cascade;
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'lesson_progress_known_lesson_check'
+      and conrelid = 'public.lesson_progress'::regclass
+  ) then
+    alter table public.lesson_progress
+      add constraint lesson_progress_known_lesson_check
+      check (
+        course_id in ('data-science', 'web-development', 'ai-ethics', 'machine-learning', 'cyber-security', 'cloud-computing')
+        and lesson_id ~ ('^' || course_id || '-lesson-[1-3]$')
+      );
+  end if;
+end;
+$$;
 
 alter table public.profiles enable row level security;
 alter table public.enrollments enable row level security;
@@ -90,13 +127,34 @@ create policy "Users can read their own lesson progress"
 create policy "Users can create their own lesson progress"
   on public.lesson_progress for insert
   to authenticated
-  with check ((select auth.uid()) = user_id);
+  with check (
+    (select auth.uid()) = user_id
+    and exists (
+      select 1 from public.enrollments enrollment
+      where enrollment.user_id = lesson_progress.user_id
+        and enrollment.course_id = lesson_progress.course_id
+    )
+  );
 
 create policy "Users can update their own lesson progress"
   on public.lesson_progress for update
   to authenticated
-  using ((select auth.uid()) = user_id)
-  with check ((select auth.uid()) = user_id);
+  using (
+    (select auth.uid()) = user_id
+    and exists (
+      select 1 from public.enrollments enrollment
+      where enrollment.user_id = lesson_progress.user_id
+        and enrollment.course_id = lesson_progress.course_id
+    )
+  )
+  with check (
+    (select auth.uid()) = user_id
+    and exists (
+      select 1 from public.enrollments enrollment
+      where enrollment.user_id = lesson_progress.user_id
+        and enrollment.course_id = lesson_progress.course_id
+    )
+  );
 
 create index if not exists enrollments_user_id_idx
   on public.enrollments (user_id);

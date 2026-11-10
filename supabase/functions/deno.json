@@ -1,0 +1,8 @@
+{
+  "nodeModulesDir": "auto",
+  "lock": true,
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitReturns": true
+  }
+}

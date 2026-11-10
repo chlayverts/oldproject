@@ -85,19 +85,35 @@ Untuk mengaktifkan Supabase pada GitHub Pages, tambahkan `VITE_SUPABASE_URL` dan
 
 Tutor AI memerlukan akun Supabase, akun OpenAI API, dan penggunaan API dapat dikenakan biaya oleh penyedia. Kunci OpenAI hanya disimpan di Supabase Edge Function, bukan di browser.
 
-1. Instal dan autentikasi [Supabase CLI](https://supabase.com/docs/guides/cli).
-2. Dari folder project, hubungkan project Supabase lalu terbitkan fungsi tutor:
+1. Buat database Redis di [Upstash](https://upstash.com/) dan siapkan REST URL serta tokennya.
+2. Instal dan autentikasi [Supabase CLI](https://supabase.com/docs/guides/cli). Dari folder project, hubungkan project Supabase:
 
    ```bash
    supabase link --project-ref ID_PROJECT_KAMU
-   supabase functions deploy tutor
-   supabase secrets set OPENAI_API_KEY=KUNCI_API_KAMU
    ```
 
-   Opsional, pilih model yang tersedia pada akun API kamu dengan secret `OPENAI_MODEL`. Jika tidak diatur, fungsi menggunakan `gpt-4.1-mini`.
-3. Pastikan aplikasi memakai URL dan publishable key Supabase seperti pada langkah sebelumnya, lalu masuk menggunakan akun Supabase. Tutor AI membatasi jawaban pada catatan pelajaran yang disediakan, meminta model memberi penjelasan dan petunjuk, serta membatasi jumlah pertanyaan per menit.
+3. Salin `supabase/functions/.env.example` menjadi `supabase/functions/.env`, isi OpenAI API key dan kredensial REST Upstash. File `.env` diabaikan oleh Git. Kirim nilainya sebagai secrets dan terbitkan fungsi:
+
+   ```bash
+   supabase secrets set --env-file supabase/functions/.env
+   supabase functions deploy tutor
+   ```
+
+   Kamu juga bisa menambahkan `OPENAI_MODEL` untuk memilih model yang tersedia pada akun API. Nilai bawaannya `gpt-4.1-mini`. Jangan letakkan kunci AI atau Redis di `.env.local` atau frontend.
+4. Pastikan aplikasi memakai URL dan publishable key Supabase seperti pada langkah sebelumnya, lalu masuk menggunakan akun Supabase. Tutor AI membatasi jawaban pada catatan pelajaran, mengizinkan maksimal 8 pertanyaan per menit dan 40 per hari per akun, serta gagal tertutup jika Redis tidak tersedia.
 
 Tanpa Supabase dan konfigurasi API, tutor demo tetap dapat dicoba; jawabannya merupakan petunjuk lokal berbasis materi, bukan respons AI.
+
+### Tes database dan pemeriksaan keamanan
+
+Tes RLS dapat dijalankan pada Supabase lokal. Docker Desktop perlu aktif:
+
+```bash
+supabase start
+supabase test db
+```
+
+GitHub Actions juga menjalankan tes database, CodeQL untuk TypeScript, pemindaian secret Gitleaks, audit dependency, dan tes aplikasi. Dependabot memeriksa pembaruan package npm serta GitHub Actions setiap minggu.
 
 ## Build dan tes
 
