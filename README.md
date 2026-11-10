@@ -6,7 +6,7 @@ Kampus Unggul adalah contoh aplikasi belajar online yang dibuat sebagai proyek p
 
 ## Coba demo online
 
-Jika GitHub Pages sudah diaktifkan untuk repositori ini, buka tab **Settings â†’ Pages** di GitHub untuk melihat alamat demo yang diterbitkan.
+Buka [demo Kampus Unggul](https://chlayverts.github.io/oldproject/) untuk mencoba aplikasinya langsung di browser.
 
 ## Jalankan di komputer sendiri
 
