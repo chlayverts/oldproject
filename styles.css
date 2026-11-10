@@ -7,12 +7,12 @@
 /* ===== CSS CUSTOM PROPERTIES (Variables) ===== */
 :root {
     /* Primary Colors */
-    --primary-color: #4a90e2;
-    --primary-dark: #357abd;
-    --primary-light: #6ba3e8;
+    --primary-color: #3157c8;
+    --primary-dark: #2848a8;
+    --primary-light: #5978de;
     
     /* Secondary Colors */
-    --secondary-color: #50c878;
+    --secondary-color: #0f766e;
     --accent-color: #f39c12;
     --danger-color: #e74c3c;
     --success-color: #2ecc71;
@@ -20,17 +20,17 @@
     --info-color: #3498db;
     
     /* Neutral Colors */
-    --text-primary: #333333;
-    --text-secondary: #666666;
-    --text-muted: #888888;
+    --text-primary: #1f2937;
+    --text-secondary: #667085;
+    --text-muted: #8993a4;
     --bg-primary: #ffffff;
-    --bg-secondary: #f8f9fa;
-    --bg-tertiary: #e9ecef;
-    --border-color: #e0e0e0;
+    --bg-secondary: #f5f7fb;
+    --bg-tertiary: #e9edf5;
+    --border-color: #dfe5ee;
     
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
-    --gradient-success: linear-gradient(135deg, #50c878 0%, #32a852 100%);
+    --gradient-primary: linear-gradient(135deg, #4168d8 0%, #2848a8 100%);
+    --gradient-success: linear-gradient(135deg, #13917d 0%, #0f766e 100%);
     --gradient-warning: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
     --gradient-danger: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
     --gradient-info: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
