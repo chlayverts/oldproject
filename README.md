@@ -7,11 +7,10 @@ Kampus Unggul is a responsive e-learning interface prototype built with HTML, CS
 ## Features
 
 - Responsive multi-page interface
-- Course catalog with search and level filters
 - Demo login flow and student dashboard
 - Course search, level filters, and local demo enrollment
 - Calendar navigation, quiz scoring, and locally saved profile fields
-- Form validation and accessible interaction patterns
+- Form validation, keyboard-friendly quiz controls, and accessible profile tabs
 
 ## Technology
 
@@ -60,7 +59,7 @@ This is a frontend demonstration only. Authentication and session data are handl
 
 ## Project status
 
-This is a portfolio prototype. A production version would need server-side authentication, persistent data, real form and enrollment endpoints, and a deployment configuration for its optional PWA assets.
+This is a portfolio prototype. A production version would need server-side authentication, persistent data, real form and enrollment endpoints, and real form and enrollment endpoints.
 
 ## Author
 
