@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build --base=/zaza/",
+    "build": "tsc --noEmit && vite build --base=/oldproject/",
     "preview": "vite preview",
     "test:e2e": "playwright test"
   },
@@ -26,3 +26,4 @@
     "vite": "^8.3.7"
   }
 }
+
