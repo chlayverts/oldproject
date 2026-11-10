@@ -17,6 +17,28 @@ create table if not exists public.enrollments (
 alter table public.profiles enable row level security;
 alter table public.enrollments enable row level security;
 
+drop policy if exists "Users can read their own profile" on public.profiles;
+drop policy if exists "Users can create their own profile" on public.profiles;
+drop policy if exists "Users can update their own profile" on public.profiles;
+drop policy if exists "Users can read their own enrollments" on public.enrollments;
+drop policy if exists "Users can create their own enrollments" on public.enrollments;
+drop policy if exists "Users can delete their own enrollments" on public.enrollments;
+
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $
+begin
+  new.updated_at = now();
+  return new;
+end;
+$;
+
+drop trigger if exists profiles_set_updated_at on public.profiles;
+create trigger profiles_set_updated_at
+  before update on public.profiles
+  for each row execute function public.set_updated_at();
+
 create policy "Users can read their own profile"
   on public.profiles for select
   to authenticated
