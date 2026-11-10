@@ -1,8 +1,7 @@
 /**
  * ================================================
  * KAMPUS UNGGUL E-LEARNING PLATFORM
- * Optimized JavaScript - Version 2.0
- * Perfect 10/10 Score
+ * Shared JavaScript - Version 2.0
  * ================================================
  */
 
