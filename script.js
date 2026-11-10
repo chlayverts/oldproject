@@ -879,15 +879,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Check session periodically
-    setInterval(() => {
-        if (!AuthManager.isAuthenticated() && window.location.pathname !== '/index.html') {
-            Utils.showToast('Sesi Anda telah berakhir', 'warning');
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 2000);
-        }
-    }, 60000); // Check every minute
+    // Guard student-only pages without interrupting visitors on public pages.
+    const protectedPages = new Set([
+        'dashboard.html',
+        'calendar.html',
+        'forum.html',
+        'downloads.html',
+        'profile.html',
+        'quiz.html'
+    ]);
+    const currentPage = window.location.pathname.split('/').pop();
+    if (protectedPages.has(currentPage) && !AuthManager.isAuthenticated()) {
+        Utils.showToast('Silakan login terlebih dahulu', 'warning');
+        setTimeout(() => {
+            window.location.href = 'index.html';
+        }, 1500);
+    }
 
     console.log('All systems initialized successfully');
 });
