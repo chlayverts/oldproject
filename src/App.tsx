@@ -44,7 +44,7 @@ function App() {
   const [search, setSearch] = useState('');
   const [level, setLevel] = useState('Semua level');
   const [enrolled, setEnrolled] = useState<Set<string>>(() => new Set(readLocal<string[]>('zaza-enrollments', [])));
-  const [profileName, setProfileName] = useState(() => readLocal('zaza-profile-name', 'Student Demo'));
+  const [profileName, setProfileName] = useState(() => readLocal('zaza-profile-name', ''));
   const [month, setMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [questionIndex, setQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -53,12 +53,14 @@ function App() {
 
   const authenticated = Boolean(session || demoUser);
   const email = session?.user.email || demoUser?.email || '';
-  const name = session?.user.user_metadata.full_name || demoUser?.name || profileName;
+  const name = profileName || session?.user.user_metadata.full_name || demoUser?.name || email || 'Student';
 
   useEffect(() => {
     const client = supabase;
     if (!client) {
-      setDemoUser(readLocal<DemoUser | null>('zaza-demo-user', null));
+      const savedDemoUser = readLocal<DemoUser | null>('zaza-demo-user', null);
+      setDemoUser(savedDemoUser);
+      if (savedDemoUser) setProfileName(readLocal('zaza-profile-name', savedDemoUser.name));
       return;
     }
     let mounted = true;
