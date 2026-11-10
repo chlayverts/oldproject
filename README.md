@@ -4,6 +4,12 @@ Kampus Unggul adalah contoh aplikasi belajar online untuk proyek portofolio. Di 
 
 **Teknologi yang digunakan:** React dan TypeScript untuk aplikasi, Vite untuk menjalankannya saat dikembangkan, Supabase (opsional) untuk akun online, dan Playwright untuk tes browser.
 
+## Pratinjau aplikasi
+
+Berikut tampilan dashboard saat akun demo memiliki dua kursus dan satu pelajaran selesai.
+
+![Pratinjau dashboard Kampus Unggul dalam mode demo](docs/images/dashboard-demo.png)
+
 > **Baru mencoba?** Kamu hanya perlu memasang Node.js lalu menjalankan aplikasi demo. Tidak perlu membuat akun Supabase, menyiapkan API key, atau mengaktifkan tutor AI.
 
 ## Coba demo online
@@ -172,6 +178,8 @@ Akun demo hanya simulasi untuk mencoba tampilan dan alur aplikasi; akun ini buka
 
 ```text
 src/                    Tampilan dan alur aplikasi
+  app/                  Tipe halaman dan navigasi
+  components/           Komponen bersama seperti header, footer, dan formulir masuk
   data/courses.ts       Data contoh kursus
   lib/                  Penyimpanan lokal dan integrasi Supabase
   styles.css            Gaya dan tampilan responsif

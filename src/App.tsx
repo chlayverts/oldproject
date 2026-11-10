@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import { AppFooter } from './components/AppFooter';
+import { AppHeader } from './components/AppHeader';
+import { AuthModal } from './components/AuthModal';
+import type { Page } from './app/navigation';
 import { courses } from './data/courses';
 import type { Course } from './data/courses';
 import { getCourseLessons } from './data/lessons';
@@ -7,7 +11,6 @@ import { readLocal, writeLocal } from './lib/localStore';
 import { supabase, supabaseConfigured } from './lib/supabase';
 import './styles.css';
 
-type Page = 'home' | 'courses' | 'dashboard' | 'calendar' | 'quiz' | 'profile' | 'forum' | 'materials' | 'learn';
 type DemoUser = { email: string; name: string };
 type QuizQuestion = { prompt: string; answers: string[]; correct: number };
 
@@ -21,23 +24,6 @@ function readRoute() {
     ? { page, courseId: validCourseId }
     : { page: page === 'learn' ? 'home' : page, courseId: null };
 }
-
-const navigationGroups: { label: string; items: { id: Page; label: string }[] }[] = [
-  { label: 'Belajar', items: [
-    { id: 'home', label: 'Beranda' },
-    { id: 'courses', label: 'Kursus' },
-    { id: 'learn', label: 'Materi belajar' },
-  ] },
-  { label: 'Aktivitas', items: [
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'calendar', label: 'Kalender' },
-    { id: 'quiz', label: 'Kuis' },
-  ] },
-  { label: 'Komunitas', items: [
-    { id: 'forum', label: 'Forum' },
-    { id: 'materials', label: 'Pustaka' },
-  ] },
-];
 
 const questions: QuizQuestion[] = [
   { prompt: 'Apa tujuan utama data science?', answers: ['Mengubah data menjadi insight yang dapat ditindaklanjuti.', 'Menyimpan file tanpa analisis.', 'Menggantikan seluruh keputusan manusia.'], correct: 0 },
@@ -514,17 +500,13 @@ function App() {
   }
 
   return <div className="app-shell">
-    <header className="site-header">
-      <button className="brand" onClick={() => navigate('home')} aria-label="Kampus Unggul beranda"><span className="brand-mark">K</span><span>Kampus<span className="brand-light">Unggul</span><small>RUANG BELAJAR DIGITAL</small></span></button>
-      <nav className="main-nav" aria-label="Navigasi utama">{navigationGroups.map(group => <div className="nav-group" role="group" aria-label={group.label} key={group.label}><span className="nav-group-label">{group.label}</span><div className="nav-group-links">{group.items.map(item => <button key={item.id} className={page === item.id ? 'nav-link active' : 'nav-link'} aria-current={page === item.id ? 'page' : undefined} onClick={() => navigate(item.id)}>{item.label}</button>)}</div></div>)}</nav>
-      <div className="header-actions"><span className={supabaseConfigured ? 'environment-badge' : 'environment-badge demo'}>{supabaseConfigured ? 'Supabase' : 'Mode demo'}</span>{authenticated ? <><button className="user-chip" onClick={() => navigate('profile')} aria-label={'Profil ' + name}><span className="avatar">{name.slice(0, 1).toUpperCase()}</span><span>{name}</span></button><button className="button button-small button-outline" onClick={() => void handleLogout()}>Keluar</button></> : <button className="button button-small button-primary" aria-label="Masuk Demo" onClick={() => { setAuthMode('login'); setLoginOpen(true); }}>Masuk</button>}</div>
-    </header>
+    <AppHeader page={page} authenticated={authenticated} name={name} supabaseConfigured={supabaseConfigured} onNavigate={navigate} onLogout={() => void handleLogout()} onOpenLogin={() => { setAuthMode('login'); setLoginOpen(true); }} />
     <main>
       {notice && <div className="notice" role="status"><span>{notice}</span><button onClick={() => setNotice('')} aria-label="Tutup pemberitahuan">Ã—</button></div>}
       {renderPage()}
     </main>
-    <footer className="site-footer"><div className="footer-brand"><span className="brand-mark">K</span><span>Kampus Unggul</span></div><p>Prototipe e-learning untuk eksplorasi pengalaman belajar digital.</p><a href="https://github.com/chlayverts/oldproject" target="_blank" rel="noreferrer">Lihat repositori â†—</a></footer>
-    {loginOpen && <div className="modal-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setLoginOpen(false); }}><section className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title"><button className="modal-close" onClick={() => setLoginOpen(false)} aria-label="Tutup formulir masuk">Ã—</button><p className="eyebrow">{supabaseConfigured ? 'AKUN KAMPUS UNGGUL' : 'MODE DEMO'}</p><h2 id="auth-title">{authMode === 'login' ? 'Selamat datang kembali' : 'Buat akun belajar'}</h2><p>{supabaseConfigured ? 'Masuk untuk menyimpan kursus dan profilmu.' : 'Gunakan akun demo untuk mencoba dashboard dan pendaftaran.'}</p>{!supabaseConfigured && <div className="demo-credentials"><span>Username</span><strong>student</strong><span>Password</span><strong>kampus123</strong></div>}<form onSubmit={event => void handleAuth(event)}><label>{supabaseConfigured ? 'Email' : 'Email atau username'}<input name="email" type={supabaseConfigured ? 'email' : 'text'} placeholder={supabaseConfigured ? 'nama@email.com' : 'student'} autoComplete="username" required /></label>{authMode === 'signup' && <label>Nama lengkap<input name="fullName" autoComplete="name" required /></label>}<label>Password<input name="password" type="password" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} minLength={6} required /></label>{authMessage && <p className="form-message" role="alert">{authMessage}</p>}<button className="button button-primary button-wide" type="submit">{authMode === 'login' ? 'Masuk' : 'Daftar'}</button></form>{supabaseConfigured && <button className="text-button auth-toggle" onClick={() => { setAuthMode(mode => mode === 'login' ? 'signup' : 'login'); setAuthMessage(''); }}>{authMode === 'login' ? 'Belum punya akun? Daftar' : 'Sudah punya akun? Masuk'}</button>}</section></div>}
+    <AppFooter />
+    {loginOpen && <AuthModal authMode={authMode} authMessage={authMessage} supabaseConfigured={supabaseConfigured} onClose={() => setLoginOpen(false)} onSubmit={event => void handleAuth(event)} onToggleMode={() => { setAuthMode(mode => mode === 'login' ? 'signup' : 'login'); setAuthMessage(''); }} />}
   </div>;
 }
 
