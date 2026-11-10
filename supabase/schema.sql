@@ -94,4 +94,77 @@ begin
 end;
 $$;
 
-drop trigger if exists profiles_set_updated_at on 
+drop trigger if exists profiles_set_updated_at on public.profiles;
+create trigger profiles_set_updated_at
+  before update on public.profiles
+  for each row execute function public.set_updated_at();
+
+create policy "Users can read their own profile"
+  on public.profiles for select
+  to authenticated
+  using ((select auth.uid()) = id);
+
+create policy "Users can create their own profile"
+  on public.profiles for insert
+  to authenticated
+  with check ((select auth.uid()) = id);
+
+create policy "Users can update their own profile"
+  on public.profiles for update
+  to authenticated
+  using ((select auth.uid()) = id)
+  with check ((select auth.uid()) = id);
+
+create policy "Users can read their own enrollments"
+  on public.enrollments for select
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+create policy "Users can create their own enrollments"
+  on public.enrollments for insert
+  to authenticated
+  with check ((select auth.uid()) = user_id);
+
+create policy "Users can delete their own enrollments"
+  on public.enrollments for delete
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+create policy "Users can read their own lesson progress"
+  on public.lesson_progress for select
+  to authenticated
+  using ((select auth.uid()) = user_id);
+
+create policy "Users can create their own lesson progress"
+  on public.lesson_progress for insert
+  to authenticated
+  with check (
+    (select auth.uid()) = user_id
+    and exists (
+      select 1 from public.enrollments enrollment
+      where enrollment.user_id = lesson_progress.user_id
+        and enrollment.course_id = lesson_progress.course_id
+    )
+  );
+
+create policy "Users can update their own lesson progress"
+  on public.lesson_progress for update
+  to authenticated
+  using (
+    (select auth.uid()) = user_id
+    and exists (
+      select 1 from public.enrollments enrollment
+      where enrollment.user_id = lesson_progress.user_id
+        and enrollment.course_id = lesson_progress.course_id
+    )
+  )
+  with check (
+    (select auth.uid()) = user_id
+    and exists (
+      select 1 from public.enrollments enrollment
+      where enrollment.user_id = lesson_progress.user_id
+        and enrollment.course_id = lesson_progress.course_id
+    )
+  );
+
+create index 
