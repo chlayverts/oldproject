@@ -39,6 +39,8 @@ npm run dev
 
 Terminal akan menampilkan alamat lokal, biasanya `http://localhost:5173`. Buka alamat itu di browser. Biarkan terminal tetap berjalan selama kamu menggunakan aplikasi. Untuk menghentikannya, tekan `Ctrl+C`.
 
+Project ini memakai server pengembangan Vite agar dependensi dan rute aplikasi berjalan sesuai konfigurasi.
+
 ### 4. Masuk ke akun demo
 
 Pilih **Masuk Demo**, kemudian gunakan:
@@ -130,7 +132,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-Workflow GitHub Actions menjalankan build dan tes pada perubahan ke `main` dan pull request. Untuk menerbitkan situs, pilih **Settings â†’ Pages â†’ Build and deployment â†’ GitHub Actions**. Setelah workflow berhasil, GitHub menampilkan alamat situs di halaman Pages.
+Workflow GitHub Actions menjalankan build dan tes pada perubahan ke `main` dan pull request. Untuk menerbitkan situs, pilih **Settings → Pages → Build and deployment → GitHub Actions**. Setelah workflow berhasil, GitHub menampilkan alamat situs di halaman Pages.
 
 ## Catatan demo
 
