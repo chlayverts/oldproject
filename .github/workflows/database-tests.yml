@@ -20,9 +20,9 @@ jobs:
         with:
           deno-version: v2.x
       - name: Check tutor function types
-        run: deno check supabase/functions/tutor/index.ts
+        run: deno check --config supabase/functions/deno.json supabase/functions/tutor/index.ts
       - name: Test tutor rate limiting
-        run: deno test supabase/functions/tutor/rateLimit_test.ts
+        run: deno test --config supabase/functions/deno.json supabase/functions/tutor/rateLimit_test.ts
       - name: Set up Supabase CLI
         uses: supabase/setup-cli@v1
         with:
