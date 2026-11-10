@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(6);
+select plan(7);
 
 insert into auth.users (id, email)
 values
@@ -52,6 +52,14 @@ select throws_ok(
 );
 
 select throws_ok(
+  $$insert into public.enrollments (user_id, course_id)
+    values ('123e4567-e89b-12d3-a456-426614174000', 'unlisted-course')$$,
+  '23514',
+  null,
+  'An enrollment must reference a course in the catalog'
+);
+
+select throws_ok(
   $$insert into public.lesson_progress (user_id, course_id, lesson_id)
     values ('123e4567-e89b-12d3-a456-426614174000', 'data-science', 'web-development-lesson-2')$$,
   '23514',
@@ -63,8 +71,4 @@ set local request.jwt.claim.sub = '987fcdeb-51a2-43d7-9012-345678901234';
 select results_eq(
   $$select lesson_id from public.lesson_progress order by lesson_id$$,
   array['ai-ethics-lesson-1'::text],
-  'A second learner reads only their own progress'
-);
-
-select * from finish();
-rollback;
+  'A second lear

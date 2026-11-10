@@ -11,7 +11,9 @@ create table if not exists public.enrollments (
   user_id uuid not null references auth.users (id) on delete cascade,
   course_id text not null,
   created_at timestamptz not null default now(),
-  unique (user_id, course_id)
+  unique (user_id, course_id),
+  constraint enrollments_known_course_check
+    check (course_id in ('data-science', 'web-development', 'ai-ethics', 'machine-learning', 'cyber-security', 'cloud-computing'))
 );
 
 create table if not exists public.lesson_progress (
@@ -43,6 +45,15 @@ begin
       foreign key (user_id, course_id)
       references public.enrollments (user_id, course_id)
       on delete cascade;
+  end if;
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'enrollments_known_course_check'
+      and conrelid = 'public.enrollments'::regclass
+  ) then
+    alter table public.enrollments
+      add constraint enrollments_known_course_check
+      check (course_id in ('data-science', 'web-development', 'ai-ethics', 'machine-learning', 'cyber-security', 'cloud-computing'));
   end if;
   if not exists (
     select 1 from pg_constraint
@@ -83,82 +94,4 @@ begin
 end;
 $$;
 
-drop trigger if exists profiles_set_updated_at on public.profiles;
-create trigger profiles_set_updated_at
-  before update on public.profiles
-  for each row execute function public.set_updated_at();
-
-create policy "Users can read their own profile"
-  on public.profiles for select
-  to authenticated
-  using ((select auth.uid()) = id);
-
-create policy "Users can create their own profile"
-  on public.profiles for insert
-  to authenticated
-  with check ((select auth.uid()) = id);
-
-create policy "Users can update their own profile"
-  on public.profiles for update
-  to authenticated
-  using ((select auth.uid()) = id)
-  with check ((select auth.uid()) = id);
-
-create policy "Users can read their own enrollments"
-  on public.enrollments for select
-  to authenticated
-  using ((select auth.uid()) = user_id);
-
-create policy "Users can create their own enrollments"
-  on public.enrollments for insert
-  to authenticated
-  with check ((select auth.uid()) = user_id);
-
-create policy "Users can delete their own enrollments"
-  on public.enrollments for delete
-  to authenticated
-  using ((select auth.uid()) = user_id);
-
-create policy "Users can read their own lesson progress"
-  on public.lesson_progress for select
-  to authenticated
-  using ((select auth.uid()) = user_id);
-
-create policy "Users can create their own lesson progress"
-  on public.lesson_progress for insert
-  to authenticated
-  with check (
-    (select auth.uid()) = user_id
-    and exists (
-      select 1 from public.enrollments enrollment
-      where enrollment.user_id = lesson_progress.user_id
-        and enrollment.course_id = lesson_progress.course_id
-    )
-  );
-
-create policy "Users can update their own lesson progress"
-  on public.lesson_progress for update
-  to authenticated
-  using (
-    (select auth.uid()) = user_id
-    and exists (
-      select 1 from public.enrollments enrollment
-      where enrollment.user_id = lesson_progress.user_id
-        and enrollment.course_id = lesson_progress.course_id
-    )
-  )
-  with check (
-    (select auth.uid()) = user_id
-    and exists (
-      select 1 from public.enrollments enrollment
-      where enrollment.user_id = lesson_progress.user_id
-        and enrollment.course_id = lesson_progress.course_id
-    )
-  );
-
-create index if not exists enrollments_user_id_idx
-  on public.enrollments (user_id);
-
-create index if not exists lesson_progress_user_id_idx
-  on public.lesson_progress (user_id);
-
+drop trigger if exists profiles_set_updated_at on 
