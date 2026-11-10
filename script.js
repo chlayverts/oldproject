@@ -422,7 +422,7 @@ const UIManager = {
 
                 if (isValid) {
                     // Process form
-                    Utils.showToast('Form berhasil dikirim!', 'success');
+                    Utils.showToast('Formulir demo belum mengirim pesan. Hubungkan layanan backend untuk mengaktifkan pengiriman.', 'warning');
                 } else {
                     Utils.showToast('Mohon isi semua field yang diperlukan', 'error');
                 }
@@ -738,6 +738,46 @@ const QuizManager = {
     }
 };
 
+// ===== COURSE MANAGER =====
+const CourseManager = {
+    init() {
+        const cards = document.querySelectorAll('.courses-grid .course-card');
+        if (!cards.length) return;
+
+        const enrolled = StorageManager.get('enrolledCourses');
+        const enrolledCourses = Array.isArray(enrolled) ? enrolled : [];
+
+        cards.forEach(card => {
+            const button = card.querySelector('.course-enroll');
+            const title = card.querySelector('h3')?.textContent.trim();
+            if (!button || !title) return;
+
+            const isEnrolled = enrolledCourses.includes(title);
+            button.textContent = isEnrolled ? 'Terdaftar di demo' : 'Daftar ke kursus';
+            button.setAttribute('aria-pressed', String(isEnrolled));
+            button.addEventListener('click', event => {
+                event.preventDefault();
+                const current = StorageManager.get('enrolledCourses');
+                const list = Array.isArray(current) ? current : [];
+                if (list.includes(title)) {
+                    Utils.showToast('Kursus ini sudah ada di daftar demo Anda.', 'info');
+                    return;
+                }
+
+                list.push(title);
+                if (!StorageManager.set('enrolledCourses', list)) {
+                    Utils.showToast('Pendaftaran demo tidak dapat disimpan di browser ini.', 'error');
+                    return;
+                }
+
+                button.textContent = 'Terdaftar di demo';
+                button.setAttribute('aria-pressed', 'true');
+                Utils.showToast('Pendaftaran demo tersimpan di browser ini.', 'success');
+            });
+        });
+    }
+};
+
 // ===== SEARCH MANAGER =====
 const SearchManager = {
     applyFilters() {
@@ -845,6 +885,7 @@ document.addEventListener('DOMContentLoaded', function() {
     UIManager.updateUserInterface();
     UIManager.initFormValidation();
     ProfileManager.init();
+    CourseManager.init();
     CalendarManager.init();
     QuizManager.init();
 
