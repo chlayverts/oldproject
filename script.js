@@ -721,46 +721,28 @@ const QuizManager = {
 
 // ===== SEARCH MANAGER =====
 const SearchManager = {
-    /**
-     * Search courses
-     */
-    searchCourses: Utils.debounce(function() {
+    applyFilters() {
         const searchInput = document.getElementById('courseSearch');
-        if (!searchInput) return;
+        const levelFilter = document.getElementById('levelFilter');
+        const searchTerm = searchInput?.value.trim().toLowerCase() || '';
+        const selectedLevel = levelFilter?.value || '';
 
-        const searchTerm = searchInput.value.toLowerCase();
-        const courseCards = document.querySelectorAll('.course-card');
-
-        courseCards.forEach(card => {
+        document.querySelectorAll('.courses-grid .course-card').forEach(card => {
             const title = card.querySelector('h3')?.textContent.toLowerCase() || '';
             const description = card.querySelector('p')?.textContent.toLowerCase() || '';
+            const matchesSearch = title.includes(searchTerm) || description.includes(searchTerm);
+            const matchesLevel = !selectedLevel || card.dataset.level === selectedLevel;
+            const isVisible = matchesSearch && matchesLevel;
 
-            if (title.includes(searchTerm) || description.includes(searchTerm)) {
-                card.style.display = 'block';
-                card.setAttribute('aria-hidden', 'false');
-            } else {
-                card.style.display = 'none';
-                card.setAttribute('aria-hidden', 'true');
-            }
+            card.style.display = isVisible ? '' : 'none';
+            card.setAttribute('aria-hidden', String(!isVisible));
         });
-    }, 300),
+    },
 
-    /**
-     * Filter by level
-     */
-    filterByLevel(level) {
-        const courseCards = document.querySelectorAll('.course-card');
+    searchCourses: Utils.debounce(() => SearchManager.applyFilters(), 300),
 
-        courseCards.forEach(card => {
-            const cardLevel = card.dataset.level;
-            if (!level || cardLevel === level) {
-                card.style.display = 'block';
-                card.setAttribute('aria-hidden', 'false');
-            } else {
-                card.style.display = 'none';
-                card.setAttribute('aria-hidden', 'true');
-            }
-        });
+    filterByLevel() {
+        this.applyFilters();
     }
 };
 
